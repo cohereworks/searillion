@@ -81,6 +81,19 @@ class RelationUniverse(Generic[A, B]):
             return self.empty_family()
         return RelationFamily(self, GraphSet.graphs(num_edges=pair_count))
 
+    def functions(self) -> "RelationFamily[A, B]":
+        """Return all total functions A→B, represented as relations."""
+        dc = {self._tag("L", a): 1 for a in self.left.elements}
+        return RelationFamily(self, GraphSet.graphs(degree_constraints=dc))
+
+    def bijections(self) -> "RelationFamily[A, B]":
+        """Return all bijections A↔B when the carrier sizes match."""
+        if len(self.left.elements) != len(self.right.elements):
+            return self.empty_family()
+        dc = {self._tag("L", a): 1 for a in self.left.elements}
+        dc.update({self._tag("R", b): 1 for b in self.right.elements})
+        return RelationFamily(self, GraphSet.graphs(degree_constraints=dc))
+
 
 class RelationFamily(Generic[A, B]):
     def __init__(self, universe: RelationUniverse[A, B], graphset: GraphSet):
