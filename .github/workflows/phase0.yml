@@ -1,0 +1,53 @@
+name: phase0
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Python ${{ matrix.python }} / Graphillion ${{ matrix.graphillion }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12"]
+        graphillion: ["2.1", "1.11.post1", "1.10"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+
+      - name: Install selected Graphillion and project
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "graphillion==${{ matrix.graphillion }}"
+          python -m pip install -e ".[dev]"
+
+      - name: Unit tests
+        run: pytest -q
+
+      - name: Graphillion smoke
+        run: python experiments/graphillion_smoke.py
+
+      - name: Explicit baseline
+        run: python experiments/powerset_baseline.py --n 16 --k 4
+
+      - name: Record environment
+        run: |
+          python -VV > artifacts/python.txt
+          python -m pip freeze > artifacts/pip-freeze.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase0-py${{ matrix.python }}-graphillion-${{ matrix.graphillion }}
+          path: artifacts/
