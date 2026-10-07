@@ -1,0 +1,46 @@
+name: structured-relations
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "experiments/**"
+      - ".github/workflows/structured-relations.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  structured:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        n: [4, 8, 12, 16]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Tests
+        run: pytest -q
+
+      - name: Structured relation benchmark
+        run: |
+          python experiments/structured_relations.py             --n ${{ matrix.n }}             --output artifacts/structured-${{ matrix.n }}.jsonl
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: structured-${{ matrix.n }}
+          path: artifacts/
