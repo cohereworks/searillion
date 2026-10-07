@@ -56,3 +56,9 @@ def test_cross_universe_algebra_rejected():
 def test_duplicate_carrier_elements_rejected():
     with pytest.raises(ValueError):
         Carrier("bad", [1, 1])
+
+def test_exact_count_exceeds_python_len_limit():
+    u = RelationUniverse(Carrier("A", range(8)), Carrier("B", range(8)))
+    assert u.all().count() == 1 << 64
+    with pytest.raises(OverflowError):
+        len(u.all())
