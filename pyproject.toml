@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "searillion"
+version = "0.0.0"
+description = "Experimental finite-SEAR research over ZDD-backed families."
+requires-python = ">=3.10"
+dependencies = ["graphillion>=1.10"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
