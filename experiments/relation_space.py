@@ -13,7 +13,7 @@ def build_and_count(n_left: int, n_right: int):
     family = universe.all()
     return {
         "atoms": universe.atom_count,
-        "represented_relations": len(family),
+        "represented_relations": family.count(),
         "expected_relations": 1 << universe.atom_count,
     }
 
