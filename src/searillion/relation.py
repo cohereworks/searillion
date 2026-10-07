@@ -88,7 +88,13 @@ class RelationFamily(Generic[A, B]):
         self._graphset = graphset
 
     def __len__(self) -> int:
+        # Python's __len__ is limited to Py_ssize_t. Preserve normal semantics
+        # for small families and direct callers to count() for astronomical ones.
         return len(self._graphset)
+
+    def count(self) -> int:
+        """Return the exact family cardinality using Graphillion's big-int path."""
+        return self._graphset.len()
 
     def __bool__(self) -> bool:
         return bool(self._graphset)
