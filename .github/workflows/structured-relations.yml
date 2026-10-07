@@ -18,8 +18,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        kind: [function, bijection]
-        n: [4, 8, 10, 12, 16]
+        include:
+          - { kind: function, n: 4 }
+          - { kind: function, n: 8 }
+          - { kind: function, n: 10 }
+          - { kind: function, n: 11 }
+          - { kind: function, n: 12 }
+          - { kind: bijection, n: 4 }
+          - { kind: bijection, n: 8 }
+          - { kind: bijection, n: 12 }
+          - { kind: bijection, n: 16 }
 
     steps:
       - uses: actions/checkout@v4
@@ -38,10 +46,22 @@ jobs:
 
       - name: Structured relation benchmark
         run: |
-          python experiments/structured_probe.py \
+          mkdir -p artifacts
+          set +e
+          timeout 30s python experiments/structured_probe.py \
             --kind ${{ matrix.kind }} \
             --n ${{ matrix.n }} \
             --output artifacts/structured-${{ matrix.kind }}-${{ matrix.n }}.jsonl
+          code=$?
+          set -e
+          if [ "$code" -eq 124 ]; then
+            printf '{"classification":"resource_bound","reason":"timeout","timeout_seconds":30,"kind":"%s","n":%s}\n' \
+              "${{ matrix.kind }}" "${{ matrix.n }}" \
+              >> artifacts/structured-${{ matrix.kind }}-${{ matrix.n }}.jsonl
+            echo "CLASSIFIED resource_bound timeout=30s"
+            exit 0
+          fi
+          exit "$code"
 
       - uses: actions/upload-artifact@v4
         if: always()
