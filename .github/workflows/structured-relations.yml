@@ -18,7 +18,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        n: [4, 8, 12, 16]
+        kind: [function, bijection]
+        n: [4, 8, 10, 12, 16]
 
     steps:
       - uses: actions/checkout@v4
@@ -37,10 +38,13 @@ jobs:
 
       - name: Structured relation benchmark
         run: |
-          python experiments/structured_relations.py             --n ${{ matrix.n }}             --output artifacts/structured-${{ matrix.n }}.jsonl
+          python experiments/structured_probe.py \
+            --kind ${{ matrix.kind }} \
+            --n ${{ matrix.n }} \
+            --output artifacts/structured-${{ matrix.kind }}-${{ matrix.n }}.jsonl
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: structured-${{ matrix.n }}
+          name: structured-${{ matrix.kind }}-${{ matrix.n }}
           path: artifacts/
