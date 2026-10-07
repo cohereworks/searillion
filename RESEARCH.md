@@ -61,3 +61,20 @@ For each notable result, preserve:
 - output correctness oracle;
 - failure/timeout/resource-cap status;
 - interpretation and competing explanations.
+
+
+## R1 — first structured-family result
+
+Observed on GitHub Actions, Python 3.12.15, Graphillion 2.1:
+
+- Total functions on a 10×10 relation universe (100 atoms): family size 10^10; build wall time ≈3.02 s; peak RSS ≈698,724 KiB; exact count ≈0.003 s.
+- Total functions on a 12×12 relation universe (144 atoms): construction did not complete before external cancellation after >74 s. This is recorded as a resource-bound outcome, not a semantic failure.
+- Bijections on a 16×16 relation universe (256 atoms): family size 16! = 20,922,789,888,000; build wall time ≈0.275 s; peak RSS ≈124,548 KiB; exact count ≈0.037 s.
+
+### Interpretation
+
+The first important result is **structural asymmetry**. Family cardinality alone does not predict difficulty: a 16×16 bijection family with ~2.09×10^13 members is easy to build and count, while the 12×12 total-function family becomes expensive despite having a highly regular closed-form description.
+
+This supports H2 only in the qualified sense intended: useful leverage depends on the structure exposed to the chosen decision-diagram encoding, not merely on the number of represented relations.
+
+The immediate follow-up is to probe n=11 for total functions and convert over-budget construction into an explicit benchmark classification rather than a failing CI job. Variable ordering and the Graphillion graph-oriented encoding remain live alternative explanations for the function-family blow-up.
