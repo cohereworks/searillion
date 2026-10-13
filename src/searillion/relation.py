@@ -132,6 +132,29 @@ class RelationFamily(Generic[A, B]):
         edge = self.universe._encode_pair(pair)
         return RelationFamily(self.universe, self._graphset.excluding(edge))
 
+    def forget(self, pair: tuple[A, B]) -> "RelationFamily[A, B]":
+        """Existentially eliminate one Boolean relation atom from the family.
+
+        For F over atom e:
+            exists e . F = F[e=0] union strip_e(F[e=1])
+
+        Graphillion's flip mutates a family, so the included branch is a fresh
+        GraphSet returned by including() before the atom is stripped.
+        """
+        edge = self.universe._encode_pair(pair)
+        absent = self._graphset.excluding(edge)
+        present = self._graphset.including(edge)
+        present.flip(edge)
+        return RelationFamily(self.universe, absent | present)
+
+    def forget_many(
+        self, pairs: Iterable[tuple[A, B]]
+    ) -> "RelationFamily[A, B]":
+        family = self
+        for pair in pairs:
+            family = family.forget(pair)
+        return family
+
     def relations(self) -> Iterator[frozenset[tuple[A, B]]]:
         for graph in self._graphset:
             yield frozenset(self.universe._decode_edge(edge) for edge in graph)
