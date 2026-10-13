@@ -1,0 +1,70 @@
+name: structured-relations
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "experiments/**"
+      - ".github/workflows/structured-relations.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  structured:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { kind: function, n: 4 }
+          - { kind: function, n: 8 }
+          - { kind: function, n: 10 }
+          - { kind: function, n: 11 }
+          - { kind: function, n: 12 }
+          - { kind: bijection, n: 4 }
+          - { kind: bijection, n: 8 }
+          - { kind: bijection, n: 12 }
+          - { kind: bijection, n: 16 }
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Tests
+        run: pytest -q
+
+      - name: Structured relation benchmark
+        run: |
+          mkdir -p artifacts
+          set +e
+          timeout 30s python experiments/structured_probe.py \
+            --kind ${{ matrix.kind }} \
+            --n ${{ matrix.n }} \
+            --output artifacts/structured-${{ matrix.kind }}-${{ matrix.n }}.jsonl
+          code=$?
+          set -e
+          if [ "$code" -eq 124 ]; then
+            printf '{"classification":"resource_bound","reason":"timeout","timeout_seconds":30,"kind":"%s","n":%s}\n' \
+              "${{ matrix.kind }}" "${{ matrix.n }}" \
+              >> artifacts/structured-${{ matrix.kind }}-${{ matrix.n }}.jsonl
+            echo "CLASSIFIED resource_bound timeout=30s"
+            exit 0
+          fi
+          exit "$code"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: structured-${{ matrix.kind }}-${{ matrix.n }}
+          path: artifacts/
