@@ -30,12 +30,24 @@ class RelationUniverse(Generic[A, B]):
     tagged bipartite graph.
     """
 
-    def __init__(self, left: Carrier[A], right: Carrier[B]):
+    def __init__(
+        self,
+        left: Carrier[A],
+        right: Carrier[B],
+        *,
+        traversal: str = "greedy",
+        pair_order: str = "row-major",
+    ):
         self.left = left
         self.right = right
-        self._pairs = tuple((a, b) for a in left.elements for b in right.elements)
+        if pair_order == "row-major":
+            self._pairs = tuple((a, b) for a in left.elements for b in right.elements)
+        elif pair_order == "column-major":
+            self._pairs = tuple((a, b) for b in right.elements for a in left.elements)
+        else:
+            raise ValueError("pair_order must be 'row-major' or 'column-major'")
         self._edges = tuple(self._encode_pair(p) for p in self._pairs)
-        GraphSet.set_universe(list(self._edges))
+        GraphSet.set_universe(list(self._edges), traversal=traversal)
 
     @staticmethod
     def _tag(side: str, value: Hashable) -> tuple[str, Hashable]:
