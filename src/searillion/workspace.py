@@ -45,16 +45,42 @@ class RelationWorkspace:
         self._by_name[name] = sig
         return sig
 
-    def compile(self) -> "RelationWorkspace":
+    def compile(
+        self,
+        atom_order: Iterable[tuple["RelationSignature", tuple]] | None = None,
+    ) -> "RelationWorkspace":
         if self._compiled:
             self._require_active()
             return self
         if not self._signatures:
             raise ValueError("workspace must contain at least one relation signature")
 
-        edges: list[tuple[Hashable, Hashable]] = []
-        for sig in self._signatures:
-            edges.extend(sig._edges)
+        expected_edges = {
+            edge
+            for sig in self._signatures
+            for edge in sig._edges
+        }
+
+        if atom_order is None:
+            edges = [
+                edge
+                for sig in self._signatures
+                for edge in sig._edges
+            ]
+        else:
+            edges = []
+            seen = set()
+            for sig, pair in atom_order:
+                if sig not in self._signatures:
+                    raise ValueError("atom order contains a signature outside this workspace")
+                edge = sig._encode_pair(pair)
+                if edge in seen:
+                    raise ValueError("atom order contains a duplicate atom")
+                seen.add(edge)
+                edges.append(edge)
+
+            if seen != expected_edges:
+                raise ValueError("atom order must contain every workspace atom exactly once")
 
         GraphSet.set_universe(edges, traversal=self.traversal)
         self._edges = tuple(edges)
