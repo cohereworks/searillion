@@ -144,6 +144,6 @@ A bounded follow-up using the best observed encoding (row-major, `as-is`) narrow
 - n=22: no completed measurement inside the 30 s resource bound.
 - n=24: no completed measurement inside the 30 s resource bound.
 
-The current practical boundary is therefore between n=18 and n=20 under this exact backend, ordering, host class, and 30 s cap. A single n=19 probe is being used to identify whether the integer crossover lies at 19 or 20.
+A follow-up n=19 probe also produced no completed measurement inside the 30 s bound. The current practical integer crossover is therefore **between n=18 and n=19** under this exact backend, ordering, host class, and 30 s cap.
 
 This result should not be generalized to all ZDD engines or all encodings. It is a measured frontier for Graphillion 2.1 using the current bipartite relation encoding and locality-preserving variable order.
