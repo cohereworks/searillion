@@ -8,6 +8,8 @@ from graphillion import GraphSet
 A = TypeVar("A", bound=Hashable)
 B = TypeVar("B", bound=Hashable)
 
+_universe_generation = 0
+
 
 @dataclass(frozen=True)
 class Carrier(Generic[A]):
@@ -38,8 +40,14 @@ class RelationUniverse(Generic[A, B]):
         traversal: str = "greedy",
         pair_order: str = "row-major",
     ):
+        global _universe_generation
+        _universe_generation += 1
+
         self.left = left
         self.right = right
+        self.traversal = traversal
+        self.pair_order = pair_order
+        self._generation = _universe_generation
         if pair_order == "row-major":
             self._pairs = tuple((a, b) for a in left.elements for b in right.elements)
         elif pair_order == "column-major":
@@ -48,6 +56,13 @@ class RelationUniverse(Generic[A, B]):
             raise ValueError("pair_order must be 'row-major' or 'column-major'")
         self._edges = tuple(self._encode_pair(p) for p in self._pairs)
         GraphSet.set_universe(list(self._edges), traversal=traversal)
+
+    def _require_active(self) -> None:
+        if self._generation != _universe_generation:
+            raise RuntimeError(
+                "relation universe is inactive: Graphillion exposes one process-global "
+                "universe, and a newer RelationUniverse has replaced this mapping"
+            )
 
     @staticmethod
     def _tag(side: str, value: Hashable) -> tuple[str, Hashable]:
@@ -74,14 +89,17 @@ class RelationUniverse(Generic[A, B]):
         return 1 << self.atom_count
 
     def all(self) -> "RelationFamily[A, B]":
+        self._require_active()
         return RelationFamily(self, GraphSet({}))
 
     def empty_family(self) -> "RelationFamily[A, B]":
+        self._require_active()
         return RelationFamily(self, GraphSet([]))
 
     def explicit(
         self, relations: Iterable[Iterable[tuple[A, B]]]
     ) -> "RelationFamily[A, B]":
+        self._require_active()
         graphs = [
             [self._encode_pair(pair) for pair in relation]
             for relation in relations
@@ -89,17 +107,20 @@ class RelationUniverse(Generic[A, B]):
         return RelationFamily(self, GraphSet(graphs))
 
     def exactly(self, pair_count: int) -> "RelationFamily[A, B]":
+        self._require_active()
         if pair_count < 0 or pair_count > self.atom_count:
             return self.empty_family()
         return RelationFamily(self, GraphSet.graphs(num_edges=pair_count))
 
     def functions(self) -> "RelationFamily[A, B]":
         """Return all total functions A→B, represented as relations."""
+        self._require_active()
         dc = {self._tag("L", a): 1 for a in self.left.elements}
         return RelationFamily(self, GraphSet.graphs(degree_constraints=dc))
 
     def bijections(self) -> "RelationFamily[A, B]":
         """Return all bijections A↔B when the carrier sizes match."""
+        self._require_active()
         if len(self.left.elements) != len(self.right.elements):
             return self.empty_family()
         dc = {self._tag("L", a): 1 for a in self.left.elements}
@@ -113,15 +134,18 @@ class RelationFamily(Generic[A, B]):
         self._graphset = graphset
 
     def __len__(self) -> int:
+        self.universe._require_active()
         # Python's __len__ is limited to Py_ssize_t. Preserve normal semantics
         # for small families and direct callers to count() for astronomical ones.
         return len(self._graphset)
 
     def count(self) -> int:
         """Return the exact family cardinality using Graphillion's big-int path."""
+        self.universe._require_active()
         return self._graphset.len()
 
     def __bool__(self) -> bool:
+        self.universe._require_active()
         return bool(self._graphset)
 
     def __or__(self, other: "RelationFamily[A, B]") -> "RelationFamily[A, B]":
@@ -137,17 +161,21 @@ class RelationFamily(Generic[A, B]):
         return RelationFamily(self.universe, self._graphset - other._graphset)
 
     def including(self, pair: tuple[A, B]) -> "RelationFamily[A, B]":
+        self.universe._require_active()
         edge = self.universe._encode_pair(pair)
         return RelationFamily(self.universe, self._graphset.including(edge))
 
     def excluding(self, pair: tuple[A, B]) -> "RelationFamily[A, B]":
+        self.universe._require_active()
         edge = self.universe._encode_pair(pair)
         return RelationFamily(self.universe, self._graphset.excluding(edge))
 
     def relations(self) -> Iterator[frozenset[tuple[A, B]]]:
+        self.universe._require_active()
         for graph in self._graphset:
             yield frozenset(self.universe._decode_edge(edge) for edge in graph)
 
     def _require_same_universe(self, other: "RelationFamily[A, B]") -> None:
         if self.universe is not other.universe:
             raise ValueError("relation families belong to different universes")
+        self.universe._require_active()

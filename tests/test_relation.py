@@ -48,9 +48,11 @@ def test_explicit_round_trip():
 
 def test_cross_universe_algebra_rejected():
     u1 = make_2x2()
+    f1 = u1.all()
     u2 = make_2x2()
+    f2 = u2.all()
     with pytest.raises(ValueError):
-        _ = u1.all() | u2.all()
+        _ = f1 | f2
 
 
 def test_duplicate_carrier_elements_rejected():
@@ -62,3 +64,24 @@ def test_exact_count_exceeds_python_len_limit():
     assert u.all().count() == 1 << 64
     with pytest.raises(OverflowError):
         len(u.all())
+
+
+def test_stale_family_rejected_after_new_global_universe():
+    u1 = RelationUniverse(Carrier("A", ["a0", "a1"]), Carrier("B", ["b0", "b1"]))
+    f1 = u1.explicit([[("a0", "b0")]])
+
+    _u2 = RelationUniverse(Carrier("X", ["x0", "x1"]), Carrier("Y", ["y0", "y1"]))
+
+    with pytest.raises(RuntimeError, match="inactive"):
+        list(f1.relations())
+
+    with pytest.raises(RuntimeError, match="inactive"):
+        f1.count()
+
+
+def test_stale_universe_cannot_construct_new_family():
+    u1 = make_2x2()
+    _u2 = RelationUniverse(Carrier("X", [0, 1]), Carrier("Y", [0, 1]))
+
+    with pytest.raises(RuntimeError, match="inactive"):
+        u1.all()
