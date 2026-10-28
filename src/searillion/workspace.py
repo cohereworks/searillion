@@ -115,19 +115,13 @@ class RelationWorkspace:
         assert graphset is not None
         return JointFamily(self, tuple(signatures), graphset)
 
-    def compose(
+    def _composition_joint(
         self,
         r_family: RelationFamily,
         s_family: RelationFamily,
         target: "RelationSignature",
-    ) -> RelationFamily:
-        """Return the exact family {S o R | R in r_family, S in s_family}.
-
-        R must have type A×B, S must have type B×C, and target must have
-        type A×C. Carrier identity is intentional: SEAR relation typing is
-        ambient-set sensitive, so equal-looking but distinct carriers are not
-        silently identified.
-        """
+    ) -> "JointFamily":
+        """Build the constrained R,S,T family before existential projection."""
         self._require_active()
 
         r = r_family.universe
@@ -156,9 +150,6 @@ class RelationWorkspace:
         graphset = joint._graphset
 
         # Enforce T(a,c) iff there exists b with R(a,b) and S(b,c).
-        # Each iteration partitions the current family into assignments with
-        # at least one witness and assignments with no witness, then fixes the
-        # corresponding target atom to true or false respectively.
         for a in r.left.elements:
             for c_value in s.right.elements:
                 t_edge = target._encode_pair((a, c_value))
@@ -177,8 +168,22 @@ class RelationWorkspace:
                     | no_witness.excluding(t_edge)
                 )
 
-        constrained = JointFamily(self, (r, s, target), graphset)
-        return constrained.project_to(target)
+        return JointFamily(self, (r, s, target), graphset)
+
+    def compose(
+        self,
+        r_family: RelationFamily,
+        s_family: RelationFamily,
+        target: "RelationSignature",
+    ) -> RelationFamily:
+        """Return the exact family {S o R | R in r_family, S in s_family}.
+
+        R must have type A×B, S must have type B×C, and target must have
+        type A×C. Carrier identity is intentional: SEAR relation typing is
+        ambient-set sensitive, so equal-looking but distinct carriers are not
+        silently identified.
+        """
+        return self._composition_joint(r_family, s_family, target).project_to(target)
 
 
 class JointFamily:
