@@ -108,3 +108,28 @@ The dominant factor is **constraint locality relative to decision-diagram variab
 This is stronger evidence for H2 than R1 alone: the same semantic family can move by orders of magnitude in time and memory solely from representation order. Searillion therefore must treat variable ordering as part of compilation semantics and benchmark metadata, not as an incidental backend tuning parameter.
 
 The next experiment scales the locality-preserving `bfs` and row-major `as-is` orderings beyond n=11.
+
+
+## R3 — locality-preserving ordering postpones, but does not remove, the scale frontier
+
+Scaling the locality-preserving total-function encodings gives a second, more credible frontier.
+
+Observed with Graphillion 2.1 / Python 3.12.15 on GitHub Actions:
+
+- n=12, row-major `as-is`: 12^12 = 8,916,100,448,256 functions; build ≈0.131 s; peak RSS ≈40,840 KiB.
+- n=12, row-major `bfs`: build ≈0.119 s; peak RSS ≈39,416 KiB.
+- n=16, row-major `as-is`: 16^16 = 18,446,744,073,709,551,616 functions; build ≈3.60 s; peak RSS ≈493,592 KiB.
+- n=16, row-major `bfs`: build ≈3.47 s; peak RSS ≈477,704 KiB.
+- n=32, both row-major `as-is` and `bfs`: no completed measurement inside the 30 s resource bound.
+- n=64, both row-major `as-is` and `bfs`: no completed measurement inside the 30 s resource bound.
+
+### Interpretation
+
+R2 corrected a severe ordering pathology, but ordering does not abolish the underlying growth. The currently defensible statement is:
+
+1. semantic-locality-preserving variable order is necessary for practical scaling on this family;
+2. once locality is preserved, the practical knee moves from roughly n≈11 to somewhere between n=16 and n=32 on the current Graphillion encoding and GitHub-hosted runner;
+3. the represented family cardinality remains a poor predictor of cost by itself;
+4. the next useful experiment is a bounded search over n in the interval (16,32), not another jump to larger powers of two.
+
+This also strengthens the requirement that Searillion's compiler choose and record variable order from semantic constraint structure rather than accept backend defaults blindly.
