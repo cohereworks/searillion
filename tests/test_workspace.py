@@ -1,7 +1,8 @@
 import pytest
+from graphillion import GraphSet
 
 from searillion.relation import Carrier
-from searillion.workspace import RelationWorkspace
+from searillion.workspace import JointFamily, RelationWorkspace
 
 
 def make_workspace():
@@ -151,3 +152,50 @@ def test_joint_product_rejects_duplicate_signature():
 
     with pytest.raises(ValueError, match="disjoint"):
         ws.product(r.all(), r.exactly(1))
+
+
+def test_project_joint_product_recovers_factor_family():
+    ws, r, s = make_workspace()
+
+    rf = r.functions()
+    sf = s.functions()
+    projected = ws.product(rf, sf).project_to(r)
+
+    assert projected.count() == rf.count()
+    assert set(projected.relations()) == set(rf.relations())
+
+
+def test_projection_is_existential_and_deduplicates_correlated_choices():
+    ws, r, s = make_workspace()
+
+    r1 = r._encode_pair((0, "x"))
+    r2 = r._encode_pair((1, "y"))
+    s1 = s._encode_pair(("x", True))
+    s2 = s._encode_pair(("y", False))
+
+    correlated = JointFamily(
+        ws,
+        (r, s),
+        GraphSet([
+            [r1, s1],
+            [r2, s1],
+            [r1, s2],
+        ]),
+    )
+
+    projected = correlated.project_to(s)
+
+    assert projected.count() == 2
+    assert set(projected.relations()) == {
+        frozenset({("x", True)}),
+        frozenset({("y", False)}),
+    }
+
+
+def test_projection_rejects_signature_not_in_joint_family():
+    ws, r, s = make_workspace()
+    t = RelationWorkspace()
+    x = t.relation("T", Carrier("X", [0]), Carrier("Y", [1]))
+    # Compiling t would invalidate ws, so membership is checked first.
+    with pytest.raises(ValueError, match="not part"):
+        ws.product(r.all(), s.all()).project_to(x)

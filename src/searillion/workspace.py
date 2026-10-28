@@ -158,6 +158,23 @@ class JointFamily:
                 for name, pairs in buckets.items()
             }
 
+    def project_to(self, signature: "RelationSignature") -> RelationFamily:
+        """Existentially eliminate every atom outside one retained signature."""
+        self.workspace._require_active()
+        if signature not in self.signatures:
+            raise ValueError("retained signature is not part of this joint family")
+
+        graphset = self._graphset.copy()
+        for sig in self.signatures:
+            if sig is signature:
+                continue
+            for edge in sig._edges:
+                absent = graphset.excluding(edge)
+                positive_cofactor = graphset.quotient(GraphSet([[edge]]))
+                graphset = absent | positive_cofactor
+
+        return RelationFamily(signature, graphset)
+
 
 class RelationSignature:
     def __init__(
