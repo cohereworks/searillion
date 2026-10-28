@@ -133,3 +133,17 @@ R2 corrected a severe ordering pathology, but ordering does not abolish the unde
 4. the next useful experiment is a bounded search over n in the interval (16,32), not another jump to larger powers of two.
 
 This also strengthens the requirement that Searillion's compiler choose and record variable order from semantic constraint structure rather than accept backend defaults blindly.
+
+
+## R4 — locality-preserving function-family frontier narrows to n=18–20
+
+A bounded follow-up using the best observed encoding (row-major, `as-is`) narrows the current hosted-runner frontier:
+
+- n=18: 18^18 = 39,346,408,075,296,537,575,424 functions; build ≈19.30 s; peak RSS ≈2,034,352 KiB.
+- n=20: no completed measurement inside the 30 s resource bound.
+- n=22: no completed measurement inside the 30 s resource bound.
+- n=24: no completed measurement inside the 30 s resource bound.
+
+The current practical boundary is therefore between n=18 and n=20 under this exact backend, ordering, host class, and 30 s cap. A single n=19 probe is being used to identify whether the integer crossover lies at 19 or 20.
+
+This result should not be generalized to all ZDD engines or all encodings. It is a measured frontier for Graphillion 2.1 using the current bipartite relation encoding and locality-preserving variable order.
