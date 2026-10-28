@@ -199,3 +199,165 @@ def test_projection_rejects_signature_not_in_joint_family():
     # Compiling t would invalidate ws, so membership is checked first.
     with pytest.raises(ValueError, match="not part"):
         ws.product(r.all(), s.all()).project_to(x)
+
+
+def make_composition_workspace():
+    a = Carrier("A", ["a0", "a1"])
+    b = Carrier("B", ["b0", "b1"])
+    c = Carrier("C", ["c0", "c1"])
+
+    ws = RelationWorkspace()
+    r = ws.relation("R", a, b)
+    s = ws.relation("S", b, c)
+    t = ws.relation("T", a, c)
+    ws.compile()
+    return ws, r, s, t
+
+
+def explicit_compose(r_relation, s_relation):
+    return frozenset(
+        (a, c)
+        for a, b1 in r_relation
+        for b2, c in s_relation
+        if b1 == b2
+    )
+
+
+def test_compose_singleton_relations():
+    ws, r, s, t = make_composition_workspace()
+
+    r_value = frozenset({
+        ("a0", "b0"),
+        ("a1", "b1"),
+    })
+    s_value = frozenset({
+        ("b0", "c1"),
+        ("b1", "c0"),
+    })
+
+    result = ws.compose(
+        r.explicit([r_value]),
+        s.explicit([s_value]),
+        t,
+    )
+
+    assert result.count() == 1
+    assert set(result.relations()) == {
+        frozenset({
+            ("a0", "c1"),
+            ("a1", "c0"),
+        })
+    }
+
+
+def test_compose_relation_families_matches_extensional_oracle():
+    ws, r, s, t = make_composition_workspace()
+
+    r_values = {
+        frozenset({("a0", "b0"), ("a1", "b1")}),
+        frozenset({("a0", "b1")}),
+    }
+    s_values = {
+        frozenset({("b0", "c1"), ("b1", "c0")}),
+        frozenset({("b1", "c1")}),
+    }
+
+    expected = {
+        explicit_compose(r_value, s_value)
+        for r_value in r_values
+        for s_value in s_values
+    }
+
+    result = ws.compose(
+        r.explicit(r_values),
+        s.explicit(s_values),
+        t,
+    )
+
+    assert result.count() == len(expected)
+    assert set(result.relations()) == expected
+
+
+def test_compose_multiple_middle_witnesses_produce_one_target_atom():
+    a = Carrier("A", ["a"])
+    b = Carrier("B", ["b0", "b1"])
+    c = Carrier("C", ["c"])
+
+    ws = RelationWorkspace()
+    r = ws.relation("R", a, b)
+    s = ws.relation("S", b, c)
+    t = ws.relation("T", a, c)
+    ws.compile()
+
+    result = ws.compose(
+        r.explicit([[("a", "b0"), ("a", "b1")]]),
+        s.explicit([[("b0", "c"), ("b1", "c")]]),
+        t,
+    )
+
+    assert set(result.relations()) == {
+        frozenset({("a", "c")})
+    }
+
+
+def test_compose_no_witness_produces_empty_relation():
+    ws, r, s, t = make_composition_workspace()
+
+    result = ws.compose(
+        r.explicit([[("a0", "b0")]]),
+        s.explicit([[("b1", "c0")]]),
+        t,
+    )
+
+    assert set(result.relations()) == {frozenset()}
+
+
+def test_compose_deduplicates_equal_results_from_different_source_pairs():
+    ws, r, s, t = make_composition_workspace()
+
+    r_values = [
+        [("a0", "b0")],
+        [("a0", "b1")],
+    ]
+    s_values = [
+        [("b0", "c0")],
+        [("b1", "c0")],
+    ]
+
+    result = ws.compose(r.explicit(r_values), s.explicit(s_values), t)
+
+    # Two different matching source pairs produce the same singleton T.
+    assert frozenset({("a0", "c0")}) in set(result.relations())
+    assert result.count() <= len(r_values) * len(s_values)
+
+
+def test_compose_requires_same_middle_ambient_carrier():
+    a = Carrier("A", [0, 1])
+    b1 = Carrier("B", [0, 1])
+    b2 = Carrier("B", [0, 1])
+    c = Carrier("C", [0, 1])
+
+    ws = RelationWorkspace()
+    r = ws.relation("R", a, b1)
+    s = ws.relation("S", b2, c)
+    t = ws.relation("T", a, c)
+    ws.compile()
+
+    with pytest.raises(ValueError, match="middle carriers"):
+        ws.compose(r.all(), s.all(), t)
+
+
+def test_compose_requires_target_with_exact_ambient_endpoints():
+    a = Carrier("A", [0])
+    a_copy = Carrier("A", [0])
+    b = Carrier("B", [0])
+    c = Carrier("C", [0])
+
+    ws = RelationWorkspace()
+    r = ws.relation("R", a, b)
+    s = ws.relation("S", b, c)
+    wrong_t = ws.relation("T", a_copy, c)
+    ws.compile()
+
+    with pytest.raises(ValueError, match="target signature"):
+        ws.compose(r.all(), s.all(), wrong_t)

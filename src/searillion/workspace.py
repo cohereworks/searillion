@@ -115,6 +115,76 @@ class RelationWorkspace:
         assert graphset is not None
         return JointFamily(self, tuple(signatures), graphset)
 
+    def _composition_joint(
+        self,
+        r_family: RelationFamily,
+        s_family: RelationFamily,
+        target: "RelationSignature",
+    ) -> "JointFamily":
+        """Build the constrained R,S,T family before existential projection."""
+        self._require_active()
+
+        r = r_family.universe
+        s = s_family.universe
+
+        if (
+            not isinstance(r, RelationSignature)
+            or not isinstance(s, RelationSignature)
+            or not isinstance(target, RelationSignature)
+            or r.workspace is not self
+            or s.workspace is not self
+            or target.workspace is not self
+        ):
+            raise ValueError("composition families and target must belong to this workspace")
+
+        if r is s or r is target or s is target:
+            raise ValueError("composition requires three distinct relation signatures")
+
+        if r.right is not s.left:
+            raise ValueError("composition middle carriers must be the same ambient carrier")
+        if target.left is not r.left or target.right is not s.right:
+            raise ValueError("target signature must have type R.left × S.right")
+
+        # Every pair (R,S) begins with every possible candidate target T.
+        joint = self.product(r_family, s_family, target.all())
+        graphset = joint._graphset
+
+        # Enforce T(a,c) iff there exists b with R(a,b) and S(b,c).
+        for a in r.left.elements:
+            for c_value in s.right.elements:
+                t_edge = target._encode_pair((a, c_value))
+                witness = GraphSet([])
+
+                for b_value in r.right.elements:
+                    witness |= (
+                        graphset
+                        .including(r._encode_pair((a, b_value)))
+                        .including(s._encode_pair((b_value, c_value)))
+                    )
+
+                no_witness = graphset - witness
+                graphset = (
+                    witness.including(t_edge)
+                    | no_witness.excluding(t_edge)
+                )
+
+        return JointFamily(self, (r, s, target), graphset)
+
+    def compose(
+        self,
+        r_family: RelationFamily,
+        s_family: RelationFamily,
+        target: "RelationSignature",
+    ) -> RelationFamily:
+        """Return the exact family {S o R | R in r_family, S in s_family}.
+
+        R must have type A×B, S must have type B×C, and target must have
+        type A×C. Carrier identity is intentional: SEAR relation typing is
+        ambient-set sensitive, so equal-looking but distinct carriers are not
+        silently identified.
+        """
+        return self._composition_joint(r_family, s_family, target).project_to(target)
+
 
 class JointFamily:
     """Family of simultaneous relation choices over disjoint signatures."""

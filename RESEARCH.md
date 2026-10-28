@@ -241,3 +241,43 @@ For this factorized workload, both multi-family product and generic existential 
 
 This does not establish that projection is universally cheap: entangled constraints can create very different intermediate diagrams. The next experiment deliberately introduces such coupling by enforcing exact relational composition,
 T(a,c) iff there exists b with R(a,b) and S(b,c), before projecting R and S away.
+
+
+## R9 — exact relational composition works, with an entanglement-driven frontier between n=5 and n=6
+
+Searillion now computes the exact family
+{S o R | R in F_R, S in F_S}
+inside one shared workspace.
+
+The construction is:
+
+1. symbolically form F_R × F_S × P(T);
+2. for every target atom T(a,c), partition the current joint family by whether some b witnesses R(a,b) and S(b,c);
+3. require T(a,c) on the witness partition and exclude it on the no-witness partition;
+4. existentially project the R and S signatures away.
+
+Small-universe tests compare the symbolic result against an explicit extensional oracle and cover multiple witnesses, no witnesses, duplicate composed results, and ambient-carrier identity.
+
+For total functions A→B and B→C with |A|=|B|=|C|=n, every function A→C is realizable, giving an exact final-family oracle of n^n.
+
+Observed on Graphillion 2.1 / Python 3.12.15:
+
+- n=2: 16 source-function pairs → 4 distinct compositions; full composition ≈0.0011 s.
+- n=3: 729 source pairs → 27 distinct compositions; full composition ≈0.0062 s.
+- n=4: 65,536 source pairs → 256 distinct compositions.
+  - composition-constraint family ≈0.0331 s;
+  - final projection ≈0.0028 s;
+  - peak RSS ≈36 MiB.
+- n=5: 9,765,625 source pairs → 3,125 distinct compositions.
+  - composition-constraint family ≈2.893 s;
+  - final projection ≈0.365 s;
+  - peak RSS ≈399 MiB before projection and ≈409 MiB overall.
+- n=6: both input function families build in ≈0.002–0.003 s, but the composition-constraint family does not complete within the 30 s resource bound; final projection is never reached.
+
+### Interpretation
+
+This is the first measured frontier caused by semantic coupling rather than merely poor variable order or raw family cardinality.
+
+Independent family product is nearly free and generic existential projection is cheap on the factorized workload. The sharp n=5→n=6 increase appears when the constraints T(a,c) iff there exists b: R(a,b) and S(b,c) entangle the three relation signatures and destroy much of the previous factorization.
+
+The current practical composition crossover is therefore between n=5 and n=6 for this exact encoding, ordering, Graphillion version, host class, and 30 s cap. This is a target for representation/order optimization, not a claim about an intrinsic ZDD complexity bound.
