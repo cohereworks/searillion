@@ -166,3 +166,21 @@ This guard is intentionally an interim safety boundary, not the final compositio
 Relational composition, projection across signatures, and multi-relation finite models require an explicit shared compilation workspace that owns one coordinated backend atom universe. Related typed relation spaces should be compiled into that workspace together, with stable atom identities and a semantically chosen variable order.
 
 This becomes a prerequisite for a defensible implementation of composition.
+
+
+## R6 — shared multi-signature workspace validated
+
+A compiled `RelationWorkspace` now permits multiple typed relation signatures to coexist safely inside one Graphillion universe.
+
+The workspace:
+
+- tags atoms by relation signature and endpoint side;
+- compiles all declared signatures into one stable backend universe;
+- restricts each signature's families to that signature's atom slice using a Graphillion search space;
+- preserves simultaneous validity of families from different signatures;
+- supports per-signature full powersets, exact-cardinality families, explicit families, total functions, and bijections;
+- invalidates an older workspace if a newer workspace replaces the process-global Graphillion universe.
+
+CI regression tests verify that using one signature does not invalidate another within the same workspace and that local family counts do not accidentally include atoms belonging to neighboring signatures.
+
+This removes the immediate global-universe blocker for composition. It does not yet provide symbolic relational composition itself.
