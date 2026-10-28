@@ -184,3 +184,33 @@ The workspace:
 CI regression tests verify that using one signature does not invalidate another within the same workspace and that local family counts do not accidentally include atoms belonging to neighboring signatures.
 
 This removes the immediate global-universe blocker for composition. It does not yet provide symbolic relational composition itself.
+
+
+## R7 — disjoint family product is effectively free after factor construction
+
+Graphillion's family `join` provides an extremely cheap symbolic Cartesian product when the participating relation signatures occupy disjoint atom slices.
+
+Observed in a shared workspace:
+
+- n=12:
+  - each function family contains 12^12 = 8,916,100,448,256 relations;
+  - building R functions ≈0.394 s;
+  - building S functions ≈0.311 s;
+  - joint product contains 12^24 = 79,496,847,203,390,844,133,441,536 relation-choice pairs;
+  - building the joint product ≈0.00012 s;
+  - exact joint count ≈0.00013 s.
+
+- n=16:
+  - each factor contains 16^16 = 18,446,744,073,709,551,616 relations;
+  - building R functions ≈4.93 s;
+  - building S functions ≈3.45 s;
+  - joint product contains 16^32 = 2^128 = 340,282,366,920,938,463,463,374,607,431,768,211,456 relation-choice pairs;
+  - building the joint product ≈0.00015 s;
+  - exact joint count ≈0.00021 s;
+  - peak RSS remained ≈459,564 KiB, dominated by factor construction.
+
+### Interpretation
+
+For independent relation signatures with disjoint variables, product cardinality is almost irrelevant to the cost of combining already-compiled families. The ZDD representation preserves the factorization directly.
+
+This supplies the first half of generic relational composition: symbolic pairing of candidate R and S relations is practical. The unresolved half is enforcing composition semantics and existentially projecting away intermediate/source relation atoms.

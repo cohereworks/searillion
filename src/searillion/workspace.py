@@ -83,6 +83,81 @@ class RelationWorkspace:
             for edge in sig._edges
         ]
 
+    def product(self, *families: RelationFamily) -> "JointFamily":
+        """Return the Cartesian product of families on disjoint signatures.
+
+        Because signature atom slices are disjoint, Graphillion's family join
+        (pairwise set union) is a one-to-one encoding of relation-choice tuples.
+        """
+        self._require_active()
+        if not families:
+            raise ValueError("at least one relation family is required")
+
+        signatures: list[RelationSignature] = []
+        seen: set[RelationSignature] = set()
+        graphset: GraphSet | None = None
+
+        for family in families:
+            sig = family.universe
+            if not isinstance(sig, RelationSignature) or sig.workspace is not self:
+                raise ValueError("all families must belong to this workspace")
+            if sig in seen:
+                raise ValueError("joint product requires disjoint relation signatures")
+            seen.add(sig)
+            signatures.append(sig)
+            sig._require_active()
+
+            if graphset is None:
+                graphset = family._graphset.copy()
+            else:
+                graphset = graphset.join(family._graphset)
+
+        assert graphset is not None
+        return JointFamily(self, tuple(signatures), graphset)
+
+
+class JointFamily:
+    """Family of simultaneous relation choices over disjoint signatures."""
+
+    def __init__(
+        self,
+        workspace: RelationWorkspace,
+        signatures: tuple["RelationSignature", ...],
+        graphset: GraphSet,
+    ):
+        self.workspace = workspace
+        self.signatures = signatures
+        self._graphset = graphset
+
+    def __len__(self) -> int:
+        self.workspace._require_active()
+        return len(self._graphset)
+
+    def __bool__(self) -> bool:
+        self.workspace._require_active()
+        return bool(self._graphset)
+
+    def count(self) -> int:
+        self.workspace._require_active()
+        return self._graphset.len()
+
+    def assignments(self):
+        """Yield joint members as {signature_name: relation} mappings."""
+        self.workspace._require_active()
+        by_name = {sig.name: sig for sig in self.signatures}
+
+        for graph in self._graphset:
+            buckets = {sig.name: set() for sig in self.signatures}
+            for edge in graph:
+                u, _v = edge
+                name = u[1]
+                sig = by_name[name]
+                buckets[name].add(sig._decode_edge(edge))
+            yield {
+                name: frozenset(pairs)
+                for name, pairs in buckets.items()
+            }
+
 
 class RelationSignature:
     def __init__(

@@ -101,3 +101,53 @@ def test_new_workspace_invalidates_old_backend_mapping():
 
     with pytest.raises(RuntimeError, match="inactive"):
         f1.count()
+
+
+def test_joint_product_counts_cartesian_relation_choices():
+    ws, r, s = make_workspace()
+
+    rf = r.functions()
+    sf = s.functions()
+    joint = ws.product(rf, sf)
+
+    assert rf.count() == 4
+    assert sf.count() == 4
+    assert joint.count() == 16
+
+
+def test_joint_product_decodes_back_to_each_signature():
+    ws, r, s = make_workspace()
+
+    joint = ws.product(
+        r.explicit([
+            [(0, "x")],
+            [(1, "y")],
+        ]),
+        s.explicit([
+            [("x", True)],
+            [("y", False)],
+        ]),
+    )
+
+    assignments = list(joint.assignments())
+    assert len(assignments) == 4
+    assert all(set(item) == {"R", "S"} for item in assignments)
+
+    r_values = {item["R"] for item in assignments}
+    s_values = {item["S"] for item in assignments}
+
+    assert r_values == {
+        frozenset({(0, "x")}),
+        frozenset({(1, "y")}),
+    }
+    assert s_values == {
+        frozenset({("x", True)}),
+        frozenset({("y", False)}),
+    }
+
+
+def test_joint_product_rejects_duplicate_signature():
+    ws, r, _s = make_workspace()
+
+    with pytest.raises(ValueError, match="disjoint"):
+        ws.product(r.all(), r.exactly(1))

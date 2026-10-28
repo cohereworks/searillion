@@ -1,10 +1,11 @@
 """Searillion experimental research package."""
 
 from searillion.relation import Carrier, RelationFamily, RelationUniverse
-from searillion.workspace import RelationSignature, RelationWorkspace
+from searillion.workspace import JointFamily, RelationSignature, RelationWorkspace
 
 __all__ = [
     "Carrier",
+    "JointFamily",
     "RelationFamily",
     "RelationSignature",
     "RelationUniverse",
