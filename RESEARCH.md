@@ -214,3 +214,30 @@ Observed in a shared workspace:
 For independent relation signatures with disjoint variables, product cardinality is almost irrelevant to the cost of combining already-compiled families. The ZDD representation preserves the factorization directly.
 
 This supplies the first half of generic relational composition: symbolic pairing of candidate R and S relations is practical. The unresolved half is enforcing composition semantics and existentially projecting away intermediate/source relation atoms.
+
+
+## R8 — exact existential projection remains cheap on factorized joint families
+
+Joint-family projection now uses exact Boolean existential elimination one atom at a time. For an eliminated atom x:
+
+- negative cofactor: members excluding x;
+- positive cofactor: Graphillion quotient by the singleton family {{x}}, which removes x from members containing it;
+- projected family: union of the two cofactors.
+
+A correlated-family regression test verifies true existential semantics and deduplication, not only recovery of an independent product factor.
+
+Observed on Graphillion 2.1 / Python 3.12.15:
+
+- n=4: eliminate 16 atoms in ≈0.0020 s.
+- n=8: eliminate 64 atoms in ≈0.0071 s.
+- n=12: eliminate 144 atoms in ≈0.0186 s.
+- n=16: eliminate 256 atoms in ≈0.0441 s.
+
+At n=16 the two function-family factors required ≈4.70 s and ≈3.37 s to build, while their symbolic join required ≈0.00016 s and existentially eliminating one entire 256-atom signature required ≈0.044 s. The projected result exactly recovered all 16^16 functions.
+
+### Interpretation
+
+For this factorized workload, both multi-family product and generic existential elimination are cheap once the source factors exist. Factor construction remains dominant.
+
+This does not establish that projection is universally cheap: entangled constraints can create very different intermediate diagrams. The next experiment deliberately introduces such coupling by enforcing exact relational composition,
+T(a,c) iff there exists b with R(a,b) and S(b,c), before projecting R and S away.
