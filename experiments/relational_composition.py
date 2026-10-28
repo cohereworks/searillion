@@ -55,17 +55,29 @@ def main() -> None:
     )
     emit(args.output, build_s)
 
-    compose = measure(
-        "compose_function_families",
+    constrain = measure(
+        "build_composition_constraint_family",
         lambda: boxes.setdefault(
-            "T",
-            ws.compose(boxes["R"], boxes["S"], t),
+            "joint",
+            ws._composition_joint(boxes["R"], boxes["S"], t),
         ) is not None,
         n=args.n,
         source_pairs=args.n ** (2 * args.n),
         expected_distinct_results=args.n ** args.n,
     )
-    emit(args.output, compose)
+    emit(args.output, constrain)
+
+    projection = measure(
+        "project_composition_to_target",
+        lambda: boxes.setdefault(
+            "T",
+            boxes["joint"].project_to(t),
+        ) is not None,
+        n=args.n,
+        eliminated_atoms=r.atom_count + s.atom_count,
+        expected_distinct_results=args.n ** args.n,
+    )
+    emit(args.output, projection)
 
     count = measure(
         "count_composed_family",
