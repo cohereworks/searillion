@@ -211,6 +211,7 @@ class RelationWorkspace:
         r_family: RelationFamily,
         s_family: RelationFamily,
         target: "RelationSignature",
+        target_pair_order: Iterable[tuple] | None = None,
     ) -> "JointFamily":
         """Construct composition targets deterministically from R×S witnesses.
 
@@ -223,24 +224,29 @@ class RelationWorkspace:
         joint = self.product(r_family, s_family)
         graphset = joint._graphset
 
-        for a in r.left.elements:
-            for c_value in s.right.elements:
-                t_edge = target._encode_pair((a, c_value))
-                witness = GraphSet([])
+        target_pairs = tuple(
+            target._pairs if target_pair_order is None else target_pair_order
+        )
+        if len(target_pairs) != target.atom_count or set(target_pairs) != set(target._pairs):
+            raise ValueError("target pair order must contain every target atom exactly once")
 
-                for b_value in r.right.elements:
-                    witness |= (
-                        graphset
-                        .including(r._encode_pair((a, b_value)))
-                        .including(s._encode_pair((b_value, c_value)))
-                    )
+        for a, c_value in target_pairs:
+            t_edge = target._encode_pair((a, c_value))
+            witness = GraphSet([])
 
-                no_witness = graphset - witness
-                # Graphillion join is pairwise set union. Joining the witness
-                # family with {{t_edge}} grafts the deterministic target atom
-                # without introducing unconstrained T choices.
-                witness_with_target = witness.join(GraphSet([[t_edge]]))
-                graphset = no_witness | witness_with_target
+            for b_value in r.right.elements:
+                witness |= (
+                    graphset
+                    .including(r._encode_pair((a, b_value)))
+                    .including(s._encode_pair((b_value, c_value)))
+                )
+
+            no_witness = graphset - witness
+            # Graphillion join is pairwise set union. Joining the witness
+            # family with {{t_edge}} grafts the deterministic target atom
+            # without introducing unconstrained T choices.
+            witness_with_target = witness.join(GraphSet([[t_edge]]))
+            graphset = no_witness | witness_with_target
 
         return JointFamily(self, (r, s, target), graphset)
 
