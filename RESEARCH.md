@@ -147,3 +147,22 @@ A bounded follow-up using the best observed encoding (row-major, `as-is`) narrow
 A follow-up n=19 probe also produced no completed measurement inside the 30 s bound. The current practical integer crossover is therefore **between n=18 and n=19** under this exact backend, ordering, host class, and 30 s cap.
 
 This result should not be generalized to all ZDD engines or all encodings. It is a measured frontier for Graphillion 2.1 using the current bipartite relation encoding and locality-preserving variable order.
+
+
+## R5 — Graphillion's process-global universe requires an explicit Searillion workspace
+
+The current Graphillion API maintains a process-global universe mapping. The initial Searillion wrapper incorrectly presented each `RelationUniverse` instance as though it owned an independent backend universe.
+
+That is unsafe: constructing a second relation universe replaces Graphillion's global edge/object table while previously-created ZDDs still exist. Without a guard, later iteration or pair-based operations can decode or address those old diagrams through the wrong mapping and produce plausible but semantically incorrect results.
+
+### Immediate remediation
+
+Searillion now associates each `RelationUniverse` with the Graphillion-universe generation under which it was created. Creating a newer universe invalidates older universes and their families for backend-dependent operations. Stale use raises rather than silently returning corrupted semantics.
+
+### Architectural consequence
+
+This guard is intentionally an interim safety boundary, not the final composition model.
+
+Relational composition, projection across signatures, and multi-relation finite models require an explicit shared compilation workspace that owns one coordinated backend atom universe. Related typed relation spaces should be compiled into that workspace together, with stable atom identities and a semantically chosen variable order.
+
+This becomes a prerequisite for a defensible implementation of composition.
