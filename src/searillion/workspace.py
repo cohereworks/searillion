@@ -147,17 +147,6 @@ class RelationWorkspace:
         s_family: RelationFamily,
         target: "RelationSignature",
     ) -> tuple["RelationSignature", "RelationSignature"]:
-        r, s = self._validate_composition_inputs(r_family, s_family, target)
-
-        return r, s
-
-    def _composition_joint(
-        self,
-        r_family: RelationFamily,
-        s_family: RelationFamily,
-        target: "RelationSignature",
-    ) -> "JointFamily":
-        """Build the constrained R,S,T family before existential projection."""
         self._require_active()
 
         r = r_family.universe
@@ -180,6 +169,17 @@ class RelationWorkspace:
             raise ValueError("composition middle carriers must be the same ambient carrier")
         if target.left is not r.left or target.right is not s.right:
             raise ValueError("target signature must have type R.left × S.right")
+
+        return r, s
+
+    def _composition_joint(
+        self,
+        r_family: RelationFamily,
+        s_family: RelationFamily,
+        target: "RelationSignature",
+    ) -> "JointFamily":
+        """Build the constrained R,S,T family before existential projection."""
+        r, s = self._validate_composition_inputs(r_family, s_family, target)
 
         # Every pair (R,S) begins with every possible candidate target T.
         joint = self.product(r_family, s_family, target.all())
