@@ -78,3 +78,33 @@ The first important result is **structural asymmetry**. Family cardinality alone
 This supports H2 only in the qualified sense intended: useful leverage depends on the structure exposed to the chosen decision-diagram encoding, not merely on the number of represented relations.
 
 The immediate follow-up is to probe n=11 for total functions and convert over-budget construction into an explicit benchmark classification rather than a failing CI job. Variable ordering and the Graphillion graph-oriented encoding remain live alternative explanations for the function-family blow-up.
+
+
+## R2 — ordering reverses the apparent function-family knee
+
+Follow-up ordering experiments show that the R1 total-function blow-up was largely an encoding-order artifact rather than an intrinsic consequence of the family cardinality.
+
+For total functions on an 11×11 relation universe (121 atoms; 285,311,670,611 represented functions):
+
+- `as-is` + row-major: build ≈0.039 s, peak RSS ≈30,228 KiB.
+- `bfs` + column-major: build ≈0.039 s, peak RSS ≈31,044 KiB.
+- `bfs` + row-major: build ≈0.052 s, peak RSS ≈30,120 KiB.
+- `as-is` + column-major: build ≈26.64 s, peak RSS ≈4,696,920 KiB.
+- `dfs` + row-major: build ≈20.70 s, peak RSS ≈4,823,864 KiB.
+- `greedy` row-major, `greedy` column-major, and `dfs` column-major did not complete within the 30 s resource bound.
+
+At n=10, locality-preserving orderings are already dramatically cheaper:
+
+- `bfs` + row-major: ≈0.0116 s, ≈26,776 KiB.
+- `as-is` + row-major: ≈0.0235 s, ≈26,232 KiB.
+- `greedy` + row-major: ≈3.09 s, ≈691,796 KiB.
+
+### Revised interpretation
+
+The R1 result remains valid as an observation about the original Graphillion encoding, but its earlier interpretation is superseded.
+
+The dominant factor is **constraint locality relative to decision-diagram variable order**. A total-function constraint decomposes naturally by left-domain element: exactly one atom from each row of A×B must be selected. Row-major `as-is` ordering keeps each such choice block contiguous, allowing compact factorization. Graph-oriented traversals can interleave those blocks and destroy that sharing.
+
+This is stronger evidence for H2 than R1 alone: the same semantic family can move by orders of magnitude in time and memory solely from representation order. Searillion therefore must treat variable ordering as part of compilation semantics and benchmark metadata, not as an incidental backend tuning parameter.
+
+The next experiment scales the locality-preserving `bfs` and row-major `as-is` orderings beyond n=11.
