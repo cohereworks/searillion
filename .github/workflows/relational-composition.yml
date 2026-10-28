@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        n: [2, 3, 4, 5]
+        n: [2, 3, 4, 5, 6]
 
     steps:
       - uses: actions/checkout@v4
