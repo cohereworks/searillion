@@ -281,3 +281,47 @@ This is the first measured frontier caused by semantic coupling rather than mere
 Independent family product is nearly free and generic existential projection is cheap on the factorized workload. The sharp n=5→n=6 increase appears when the constraints T(a,c) iff there exists b: R(a,b) and S(b,c) entangle the three relation signatures and destroy much of the previous factorization.
 
 The current practical composition crossover is therefore between n=5 and n=6 for this exact encoding, ordering, Graphillion version, host class, and 30 s cap. This is a target for representation/order optimization, not a claim about an intrinsic ZDD complexity bound.
+
+
+## R10 — simple global variable orders do not remove the n=6 composition frontier
+
+The first composition-ordering pass compared five workspace-wide atom orders at n=5 and n=6:
+
+- signature-major (baseline);
+- row-block R/S/T;
+- witness-first;
+- target-first;
+- middle-carrier-first.
+
+At n=5, all strategies produced the correct 3,125-function result family.
+
+Representative timings:
+
+- signature-major:
+  - constraint family ≈2.705 s;
+  - projection ≈0.308 s;
+  - peak RSS ≈399–409 MiB.
+- middle-first:
+  - constraint family ≈2.611 s;
+  - projection ≈0.471 s;
+  - peak RSS ≈398–400 MiB.
+- row-block R/S/T:
+  - constraint family ≈4.688 s;
+  - projection ≈0.208 s;
+  - peak RSS ≈430–436 MiB.
+- witness-first:
+  - constraint family ≈6.159 s;
+  - projection ≈0.896 s;
+  - peak RSS ≈790–809 MiB.
+- target-first:
+  - constraint family ≈6.033 s;
+  - projection ≈0.696 s;
+  - peak RSS ≈788–793 MiB.
+
+At n=6, every tested order built the two 46,656-member input function families in milliseconds, but none completed the composition-constraint family within the 30 s resource bound.
+
+### Interpretation
+
+Unlike the earlier total-function result, this frontier is not removed by obvious locality-preserving or constraint-local atom orders. Ordering still matters quantitatively, but the tested global orders do not explain the n=5→n=6 cliff.
+
+The next hypothesis targets the construction algorithm itself. The current composer begins with F_R × F_S × P(T), introducing every possible target relation before filtering it to the unique composition. A deterministic target-construction algorithm can instead begin with F_R × F_S and graft T(a,c) only onto assignments for which a witness exists, avoiding the 2^(|A||C|) unconstrained target factor.
