@@ -170,9 +170,8 @@ class JointFamily:
                 continue
             for edge in sig._edges:
                 absent = graphset.excluding(edge)
-                present = graphset.including(edge)
-                present.remove(edge)
-                graphset = absent | present
+                positive_cofactor = graphset.quotient(GraphSet([[edge]]))
+                graphset = absent | positive_cofactor
 
         return RelationFamily(signature, graphset)
 
