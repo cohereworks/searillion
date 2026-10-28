@@ -58,7 +58,6 @@ class RelationUniverse(Generic[A, B]):
         self.right = right
         self.traversal = traversal
         self.pair_order = pair_order
-        self._generation = _claim_backend_universe()
         if pair_order == "row-major":
             self._pairs = tuple((a, b) for a in left.elements for b in right.elements)
         elif pair_order == "column-major":
@@ -67,6 +66,7 @@ class RelationUniverse(Generic[A, B]):
             raise ValueError("pair_order must be 'row-major' or 'column-major'")
         self._edges = tuple(self._encode_pair(p) for p in self._pairs)
         GraphSet.set_universe(list(self._edges), traversal=traversal)
+        self._generation = _claim_backend_universe()
 
     def _require_active(self) -> None:
         _require_backend_generation(self._generation)
