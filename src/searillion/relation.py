@@ -11,6 +11,20 @@ B = TypeVar("B", bound=Hashable)
 _universe_generation = 0
 
 
+def _claim_backend_universe() -> int:
+    global _universe_generation
+    _universe_generation += 1
+    return _universe_generation
+
+
+def _require_backend_generation(generation: int) -> None:
+    if generation != _universe_generation:
+        raise RuntimeError(
+            "backend universe is inactive: Graphillion exposes one process-global "
+            "universe and a newer Searillion compilation has replaced this mapping"
+        )
+
+
 @dataclass(frozen=True)
 class Carrier(Generic[A]):
     name: str
@@ -40,14 +54,11 @@ class RelationUniverse(Generic[A, B]):
         traversal: str = "greedy",
         pair_order: str = "row-major",
     ):
-        global _universe_generation
-        _universe_generation += 1
-
         self.left = left
         self.right = right
         self.traversal = traversal
         self.pair_order = pair_order
-        self._generation = _universe_generation
+        self._generation = _claim_backend_universe()
         if pair_order == "row-major":
             self._pairs = tuple((a, b) for a in left.elements for b in right.elements)
         elif pair_order == "column-major":
@@ -58,11 +69,7 @@ class RelationUniverse(Generic[A, B]):
         GraphSet.set_universe(list(self._edges), traversal=traversal)
 
     def _require_active(self) -> None:
-        if self._generation != _universe_generation:
-            raise RuntimeError(
-                "relation universe is inactive: Graphillion exposes one process-global "
-                "universe, and a newer RelationUniverse has replaced this mapping"
-            )
+        _require_backend_generation(self._generation)
 
     @staticmethod
     def _tag(side: str, value: Hashable) -> tuple[str, Hashable]:
