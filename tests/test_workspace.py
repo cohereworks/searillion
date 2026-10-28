@@ -361,3 +361,54 @@ def test_compose_requires_target_with_exact_ambient_endpoints():
 
     with pytest.raises(ValueError, match="target signature"):
         ws.compose(r.all(), s.all(), wrong_t)
+
+
+def test_explicit_atom_order_preserves_workspace_semantics():
+    a = Carrier("A", [0, 1])
+    b = Carrier("B", ["x", "y"])
+    c = Carrier("C", [False, True])
+
+    ws = RelationWorkspace()
+    r = ws.relation("R", a, b)
+    s = ws.relation("S", b, c)
+
+    order = [
+        (s, pair) for pair in reversed(s._pairs)
+    ] + [
+        (r, pair) for pair in reversed(r._pairs)
+    ]
+    ws.compile(atom_order=order)
+
+    assert r.functions().count() == 4
+    assert s.functions().count() == 4
+    assert ws.product(r.functions(), s.functions()).count() == 16
+
+
+def test_explicit_atom_order_rejects_missing_atoms():
+    ws = RelationWorkspace()
+    r = ws.relation("R", Carrier("A", [0, 1]), Carrier("B", [0, 1]))
+
+    with pytest.raises(ValueError, match="every workspace atom"):
+        ws.compile(atom_order=[(r, r._pairs[0])])
+
+
+def test_explicit_atom_order_rejects_duplicate_atoms():
+    ws = RelationWorkspace()
+    r = ws.relation("R", Carrier("A", [0]), Carrier("B", [0]))
+
+    with pytest.raises(ValueError, match="duplicate"):
+        ws.compile(atom_order=[(r, r._pairs[0]), (r, r._pairs[0])])
+
+
+def test_explicit_atom_order_rejects_foreign_signature():
+    a = Carrier("A", [0])
+    b = Carrier("B", [0])
+
+    ws1 = RelationWorkspace()
+    r1 = ws1.relation("R", a, b)
+
+    ws2 = RelationWorkspace()
+    r2 = ws2.relation("R2", a, b)
+
+    with pytest.raises(ValueError, match="outside this workspace"):
+        ws1.compile(atom_order=[(r2, r2._pairs[0])])
