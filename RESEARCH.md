@@ -78,3 +78,58 @@ The first important result is **structural asymmetry**. Family cardinality alone
 This supports H2 only in the qualified sense intended: useful leverage depends on the structure exposed to the chosen decision-diagram encoding, not merely on the number of represented relations.
 
 The immediate follow-up is to probe n=11 for total functions and convert over-budget construction into an explicit benchmark classification rather than a failing CI job. Variable ordering and the Graphillion graph-oriented encoding remain live alternative explanations for the function-family blow-up.
+
+
+## R2 — ordering reverses the apparent function-family knee
+
+Follow-up ordering experiments show that the R1 total-function blow-up was largely an encoding-order artifact rather than an intrinsic consequence of the family cardinality.
+
+For total functions on an 11×11 relation universe (121 atoms; 285,311,670,611 represented functions):
+
+- `as-is` + row-major: build ≈0.039 s, peak RSS ≈30,228 KiB.
+- `bfs` + column-major: build ≈0.039 s, peak RSS ≈31,044 KiB.
+- `bfs` + row-major: build ≈0.052 s, peak RSS ≈30,120 KiB.
+- `as-is` + column-major: build ≈26.64 s, peak RSS ≈4,696,920 KiB.
+- `dfs` + row-major: build ≈20.70 s, peak RSS ≈4,823,864 KiB.
+- `greedy` row-major, `greedy` column-major, and `dfs` column-major did not complete within the 30 s resource bound.
+
+At n=10, locality-preserving orderings are already dramatically cheaper:
+
+- `bfs` + row-major: ≈0.0116 s, ≈26,776 KiB.
+- `as-is` + row-major: ≈0.0235 s, ≈26,232 KiB.
+- `greedy` + row-major: ≈3.09 s, ≈691,796 KiB.
+
+### Revised interpretation
+
+The R1 result remains valid as an observation about the original Graphillion encoding, but its earlier interpretation is superseded.
+
+The dominant factor is **constraint locality relative to decision-diagram variable order**. A total-function constraint decomposes naturally by left-domain element: exactly one atom from each row of A×B must be selected. Row-major `as-is` ordering keeps each such choice block contiguous, allowing compact factorization. Graph-oriented traversals can interleave those blocks and destroy that sharing.
+
+This is stronger evidence for H2 than R1 alone: the same semantic family can move by orders of magnitude in time and memory solely from representation order. Searillion therefore must treat variable ordering as part of compilation semantics and benchmark metadata, not as an incidental backend tuning parameter.
+
+The next experiment scales the locality-preserving `bfs` and row-major `as-is` orderings beyond n=11.
+
+
+## R3 — locality-preserving ordering postpones, but does not remove, the scale frontier
+
+Scaling the locality-preserving total-function encodings gives a second, more credible frontier.
+
+Observed with Graphillion 2.1 / Python 3.12.15 on GitHub Actions:
+
+- n=12, row-major `as-is`: 12^12 = 8,916,100,448,256 functions; build ≈0.131 s; peak RSS ≈40,840 KiB.
+- n=12, row-major `bfs`: build ≈0.119 s; peak RSS ≈39,416 KiB.
+- n=16, row-major `as-is`: 16^16 = 18,446,744,073,709,551,616 functions; build ≈3.60 s; peak RSS ≈493,592 KiB.
+- n=16, row-major `bfs`: build ≈3.47 s; peak RSS ≈477,704 KiB.
+- n=32, both row-major `as-is` and `bfs`: no completed measurement inside the 30 s resource bound.
+- n=64, both row-major `as-is` and `bfs`: no completed measurement inside the 30 s resource bound.
+
+### Interpretation
+
+R2 corrected a severe ordering pathology, but ordering does not abolish the underlying growth. The currently defensible statement is:
+
+1. semantic-locality-preserving variable order is necessary for practical scaling on this family;
+2. once locality is preserved, the practical knee moves from roughly n≈11 to somewhere between n=16 and n=32 on the current Graphillion encoding and GitHub-hosted runner;
+3. the represented family cardinality remains a poor predictor of cost by itself;
+4. the next useful experiment is a bounded search over n in the interval (16,32), not another jump to larger powers of two.
+
+This also strengthens the requirement that Searillion's compiler choose and record variable order from semantic constraint structure rather than accept backend defaults blindly.

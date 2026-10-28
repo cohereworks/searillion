@@ -1,0 +1,101 @@
+name: function-ordering
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "experiments/function_ordering.py"
+      - ".github/workflows/function-ordering.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ordering:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        traversal: [greedy, bfs, dfs, as-is]
+        pair_order: [row-major, column-major]
+        n: [10, 11]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Tests
+        run: pytest -q
+      - name: Probe ordering
+        run: |
+          mkdir -p artifacts
+          set +e
+          timeout 30s python experiments/function_ordering.py \
+            --n ${{ matrix.n }} \
+            --traversal ${{ matrix.traversal }} \
+            --pair-order ${{ matrix.pair_order }} \
+            --output artifacts/order-${{ matrix.n }}-${{ matrix.traversal }}-${{ matrix.pair_order }}.jsonl
+          code=$?
+          set -e
+          if [ "$code" -eq 124 ]; then
+            printf '{"classification":"resource_bound","reason":"timeout","timeout_seconds":30,"n":%s,"traversal":"%s","pair_order":"%s"}\n' \
+              "${{ matrix.n }}" "${{ matrix.traversal }}" "${{ matrix.pair_order }}" \
+              >> artifacts/order-${{ matrix.n }}-${{ matrix.traversal }}-${{ matrix.pair_order }}.jsonl
+            exit 0
+          fi
+          exit "$code"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: order-${{ matrix.n }}-${{ matrix.traversal }}-${{ matrix.pair_order }}
+          path: artifacts/
+
+
+  scale-local-order:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        traversal: [bfs, as-is]
+        n: [12, 16, 32, 64]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Probe locality-preserving order
+        run: |
+          mkdir -p artifacts
+          set +e
+          timeout 30s python experiments/function_ordering.py \
+            --n ${{ matrix.n }} \
+            --traversal ${{ matrix.traversal }} \
+            --pair-order row-major \
+            --output artifacts/scale-${{ matrix.n }}-${{ matrix.traversal }}-row-major.jsonl
+          code=$?
+          set -e
+          if [ "$code" -eq 124 ]; then
+            printf '{"classification":"resource_bound","reason":"timeout","timeout_seconds":30,"n":%s,"traversal":"%s","pair_order":"row-major"}\n' \
+              "${{ matrix.n }}" "${{ matrix.traversal }}" \
+              >> artifacts/scale-${{ matrix.n }}-${{ matrix.traversal }}-row-major.jsonl
+            exit 0
+          fi
+          exit "$code"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scale-${{ matrix.n }}-${{ matrix.traversal }}-row-major
+          path: artifacts/
