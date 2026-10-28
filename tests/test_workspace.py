@@ -466,3 +466,48 @@ def test_graft_composition_handles_multiple_witnesses_and_no_witnesses():
     assert set(result.relations()) == {
         frozenset({("a", "c0")})
     }
+
+
+def test_graft_target_constraint_order_preserves_composition_semantics():
+    ws, r, s, t = make_composition_workspace()
+
+    r_values = {
+        frozenset({("a0", "b0"), ("a1", "b1")}),
+        frozenset({("a0", "b1")}),
+    }
+    s_values = {
+        frozenset({("b0", "c1"), ("b1", "c0")}),
+        frozenset({("b1", "c1")}),
+    }
+
+    rf = r.explicit(r_values)
+    sf = s.explicit(s_values)
+
+    default = ws._composition_joint_graft(rf, sf, t).project_to(t)
+    reversed_order = ws._composition_joint_graft(
+        rf,
+        sf,
+        t,
+        target_pair_order=reversed(t._pairs),
+    ).project_to(t)
+
+    expected = {
+        explicit_compose(r_value, s_value)
+        for r_value in r_values
+        for s_value in s_values
+    }
+
+    assert set(default.relations()) == expected
+    assert set(reversed_order.relations()) == expected
+
+
+def test_graft_target_constraint_order_requires_complete_permutation():
+    ws, r, s, t = make_composition_workspace()
+
+    with pytest.raises(ValueError, match="every target atom"):
+        ws._composition_joint_graft(
+            r.all(),
+            s.all(),
+            t,
+            target_pair_order=t._pairs[:-1],
+        )
