@@ -325,3 +325,39 @@ At n=6, every tested order built the two 46,656-member input function families i
 Unlike the earlier total-function result, this frontier is not removed by obvious locality-preserving or constraint-local atom orders. Ordering still matters quantitatively, but the tested global orders do not explain the n=5→n=6 cliff.
 
 The next hypothesis targets the construction algorithm itself. The current composer begins with F_R × F_S × P(T), introducing every possible target relation before filtering it to the unique composition. A deterministic target-construction algorithm can instead begin with F_R × F_S and graft T(a,c) only onto assignments for which a witness exists, avoiding the 2^(|A||C|) unconstrained target factor.
+
+
+## R11 — deterministic target grafting halves memory at n=5 but does not move the n=6 frontier
+
+A second exact composition construction avoids the unconstrained P(T) factor entirely.
+
+Instead of starting from F_R × F_S × P(T) and filtering T, the graft algorithm starts from F_R × F_S. For each target atom T(a,c), it identifies assignments with at least one R/S witness and uses Graphillion family join with {{T(a,c)}} to graft the target atom onto exactly those assignments.
+
+Extensional tests verify that graft and filter produce exactly the same composed relation families, including multiple-witness and no-witness cases.
+
+At n=5:
+
+- filter:
+  - constraint construction ≈2.44 s;
+  - projection ≈0.31 s;
+  - peak RSS ≈399–409 MiB.
+- graft:
+  - constraint construction ≈1.55 s;
+  - projection ≈0.35 s;
+  - peak RSS ≈212–217 MiB.
+
+Thus graft reduces constraint time by roughly one third and approximately halves peak memory at the largest successful benchmark.
+
+However, graft does not move the current 30 s frontier:
+
+- n=6: input factors build in milliseconds, but graft constraint construction does not complete inside 30 s.
+- n=7: same resource-bound outcome.
+- n=8: same resource-bound outcome.
+
+### Interpretation
+
+The unconstrained target powerset was a substantial but secondary source of cost. Removing it improves the successful regime without eliminating the sharp entanglement frontier.
+
+Graft becomes the default composition constructor because it is exact, conceptually direct, and materially cheaper. The original filter constructor is retained as an experimental baseline.
+
+The remaining bottleneck is the symbolic enforcement of the witness-dependent target relation itself, not target-choice multiplicity, generic projection, or independent family product.
