@@ -141,13 +141,12 @@ class RelationWorkspace:
         assert graphset is not None
         return JointFamily(self, tuple(signatures), graphset)
 
-    def _composition_joint(
+    def _validate_composition_inputs(
         self,
         r_family: RelationFamily,
         s_family: RelationFamily,
         target: "RelationSignature",
-    ) -> "JointFamily":
-        """Build the constrained R,S,T family before existential projection."""
+    ) -> tuple["RelationSignature", "RelationSignature"]:
         self._require_active()
 
         r = r_family.universe
@@ -170,6 +169,17 @@ class RelationWorkspace:
             raise ValueError("composition middle carriers must be the same ambient carrier")
         if target.left is not r.left or target.right is not s.right:
             raise ValueError("target signature must have type R.left × S.right")
+
+        return r, s
+
+    def _composition_joint(
+        self,
+        r_family: RelationFamily,
+        s_family: RelationFamily,
+        target: "RelationSignature",
+    ) -> "JointFamily":
+        """Build the constrained R,S,T family before existential projection."""
+        r, s = self._validate_composition_inputs(r_family, s_family, target)
 
         # Every pair (R,S) begins with every possible candidate target T.
         joint = self.product(r_family, s_family, target.all())
@@ -196,6 +206,44 @@ class RelationWorkspace:
 
         return JointFamily(self, (r, s, target), graphset)
 
+    def _composition_joint_graft(
+        self,
+        r_family: RelationFamily,
+        s_family: RelationFamily,
+        target: "RelationSignature",
+    ) -> "JointFamily":
+        """Construct composition targets deterministically from R×S witnesses.
+
+        Unlike _composition_joint(), this does not introduce P(T) and filter it
+        afterward.  It begins with R×S and grafts a target atom onto exactly
+        those assignments that have at least one middle-carrier witness.
+        """
+        r, s = self._validate_composition_inputs(r_family, s_family, target)
+
+        joint = self.product(r_family, s_family)
+        graphset = joint._graphset
+
+        for a in r.left.elements:
+            for c_value in s.right.elements:
+                t_edge = target._encode_pair((a, c_value))
+                witness = GraphSet([])
+
+                for b_value in r.right.elements:
+                    witness |= (
+                        graphset
+                        .including(r._encode_pair((a, b_value)))
+                        .including(s._encode_pair((b_value, c_value)))
+                    )
+
+                no_witness = graphset - witness
+                # Graphillion join is pairwise set union. Joining the witness
+                # family with {{t_edge}} grafts the deterministic target atom
+                # without introducing unconstrained T choices.
+                witness_with_target = witness.join(GraphSet([[t_edge]]))
+                graphset = no_witness | witness_with_target
+
+        return JointFamily(self, (r, s, target), graphset)
+
     def compose(
         self,
         r_family: RelationFamily,
@@ -209,7 +257,7 @@ class RelationWorkspace:
         ambient-set sensitive, so equal-looking but distinct carriers are not
         silently identified.
         """
-        return self._composition_joint(r_family, s_family, target).project_to(target)
+        return self._composition_joint_graft(r_family, s_family, target).project_to(target)
 
 
 class JointFamily:

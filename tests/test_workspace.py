@@ -412,3 +412,57 @@ def test_explicit_atom_order_rejects_foreign_signature():
 
     with pytest.raises(ValueError, match="outside this workspace"):
         ws1.compile(atom_order=[(r2, r2._pairs[0])])
+
+
+def test_graft_composition_matches_filter_composition_and_oracle():
+    ws, r, s, t = make_composition_workspace()
+
+    r_values = {
+        frozenset({("a0", "b0"), ("a1", "b1")}),
+        frozenset({("a0", "b1")}),
+    }
+    s_values = {
+        frozenset({("b0", "c1"), ("b1", "c0")}),
+        frozenset({("b1", "c1")}),
+    }
+
+    expected = {
+        explicit_compose(r_value, s_value)
+        for r_value in r_values
+        for s_value in s_values
+    }
+
+    rf = r.explicit(r_values)
+    sf = s.explicit(s_values)
+
+    filtered = ws._composition_joint(rf, sf, t).project_to(t)
+    grafted = ws._composition_joint_graft(rf, sf, t).project_to(t)
+
+    assert set(filtered.relations()) == expected
+    assert set(grafted.relations()) == expected
+    assert set(grafted.relations()) == set(filtered.relations())
+
+
+def test_graft_composition_handles_multiple_witnesses_and_no_witnesses():
+    a = Carrier("A", ["a"])
+    b = Carrier("B", ["b0", "b1"])
+    c = Carrier("C", ["c0", "c1"])
+
+    ws = RelationWorkspace()
+    r = ws.relation("R", a, b)
+    s = ws.relation("S", b, c)
+    t = ws.relation("T", a, c)
+    ws.compile()
+
+    rf = r.explicit([
+        [("a", "b0"), ("a", "b1")],
+    ])
+    sf = s.explicit([
+        [("b0", "c0"), ("b1", "c0")],
+    ])
+
+    result = ws._composition_joint_graft(rf, sf, t).project_to(t)
+
+    assert set(result.relations()) == {
+        frozenset({("a", "c0")})
+    }
