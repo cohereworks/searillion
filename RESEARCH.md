@@ -536,3 +536,50 @@ guarded by current tests), the R1 ordering artifact (corrected R2), and
 an unverified missing Asana “M1” code artifact. Those have separate
 dispositions in [the audit reconciliation](labbook/AUDIT-2026-11-04.md);
 M1 is not credited as implemented without recoverable provenance.
+
+
+## R17 — independent CI reproduces the bijection node profile and asymmetric controls
+
+PR #18's [diagnostic Actions run](https://github.com/cohereworks/searillion/actions/runs/41898604870)
+executed **nine** row-node matrix cases (n=5–8) on GitHub-hosted
+Ubuntu runners, Python 3.12.15, Graphillion 2.1, all with opt-in
+`setset.dumps()` checkpoint instrumentation. All nine jobs **completed**
+within 30 s and passed **independent exact target-family equality**.
+No counted final family was obtained only from an unverified cardinality
+shortcut. The run retains nine raw JSONL artifact archives, with
+per-row wall/CPU/RSS and serialization diagnostics.
+
+At bijection/bijection n=5,6,7,8, **every row-boundary serialized node
+count** matched the exploratory R16 empirical formula
+`n * 2^(n-1) * (binomial(n,k)+1)`. At n=8 the exact row series was
+9,216, 29,696, 58,368, 72,704, 58,368, 29,696, 9,216, 2,048;
+in contrast, total-function n=8 nodes increased linearly from 8,006
+to 15,118. These are retained checkpoint nodes, **not** operation
+peak nodes or a general asymptotic theorem.
+
+Instrumented n=8 construction controls, all with exact output oracles:
+
+| R family | S family | constraint seconds | peak RSS (KiB) |
+| --- | --- | ---: | ---: |
+| bijections | bijections | 7.5727 | 805,820 |
+| total functions | total functions | 2.6132 | 401,388 |
+| bijections | fixed identity | 0.0438 | 32,044 |
+| fixed identity | bijections | 1.7151 | 162,752 |
+| total functions | bijections | 0.2661 | 74,016 |
+| bijections | total functions | 15.6562 | 1,592,764 |
+
+The more costly direction **R=bijections, S=total-functions** despite
+the larger final family establishes that the *placement* of correlated
+constraints matters, not just their presence. Fixing S nearly eliminates
+the expensive state. The observations support a live set-of-used-middle-
+elements mechanism and identify a real compiler-plan optimization
+frontier; they do not exonerate potential inefficiencies in Graphillion
+or fully explain the transient peak allocations.
+
+All twelve PR #18 workflows passed after upgrading existing JavaScript
+actions to v6 (`checkout`, `setup-python`, `upload-artifact`), each
+verified as `runs.using: node24`. The complete runner/tool/provenance
+and per-row node vectors are persisted in
+[R17 derived JSONL](experiments/results/r17-bijection-diagnostics.jsonl);
+see [L001](labbook/L001-bijection-composition.md) for reader-facing
+purpose, falsifiers, interpretations, and future discriminators.

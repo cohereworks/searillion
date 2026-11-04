@@ -1,7 +1,8 @@
 # L001 — Why is n=8 bijection composition unexpectedly expensive?
 
-**Date:** 2026-11-04. **Status:** exploratory mechanism, CI-reproduced
-original anomaly (R15), exact outputs verified for completed controls.
+**Date:** 2026-11-04. **Status:** CI-reproduced anomaly and row-node
+pattern (R17); exact outputs verified for all completed controls;
+mechanistic interpretation remains provisional.
 **Related evidence:** [R13](../RESEARCH.md#r13--github-actions-confirms-r12-row-elimination-becomes-default),
 [R15](../RESEARCH.md#r15--structural-controls-replicated-in-ci-row-graft-is-not-uniformly-optimal).
 
@@ -144,6 +145,13 @@ cheap final families.
   process; the 72,704 retained nodes do not alone explain ~786 MiB.
 - `setset.dumps()` node parsing is backend-specific and may perturb time
   and memory. A lower-level operation-level node counter is still needed.
+- One additional same-host, separate-process uninstrumented n=8 run gave
+  11.241 s / 797,648 KiB for bijections and 3.892 s / 393,980 KiB
+  for total functions. The corresponding instrumented local runs above
+  were 10.166 s / 804,948 KiB and 3.625 s / 396,544 KiB. The memory
+  difference is small; the *negative apparent timing overhead* demonstrates
+  that single runs are too noisy to estimate serialization cost. Repeated
+  paired trials and transient-node probes are still required.
 - Each timing is one process; paired repetitions and CI replication of the
   new substitutions remain outstanding. Original anomaly has independent CI.
 - `as-is` signature-major ordering can make semantically trivial copies
@@ -181,9 +189,39 @@ python experiments/composition_graft.py --n 8 --family bijection-function --algo
   [R13 run](https://github.com/cohereworks/searillion/actions/runs/41882644698),
   [R15 raw artifacts](https://github.com/cohereworks/searillion/actions/runs/41885045040),
   [R15 derived JSONL](../experiments/results/r15-composition-families.jsonl).
-- The diagnostic workflow will retain raw JSONL with row checkpoints and
-  timeout classifications; add the first verified run link as an addendum.
+- Diagnostic [R17 CI run](https://github.com/cohereworks/searillion/actions/runs/41898604870):
+  nine archived raw JSONL artifacts with row checkpoints and exact oracle
+  outcomes; [tracked R17 derived summary](../experiments/results/r17-bijection-diagnostics.jsonl).
 
 ## Corrections / addenda
 
-None yet. CI results for the new row-node matrix are pending.
+### 2026-11-04: CI replication of all nine diagnostics (R17)
+
+All nine jobs in [run 41898604870](https://github.com/cohereworks/searillion/actions/runs/41898604870)
+**completed** under their 30 s bounds and passed independent exact
+target-family equality; no resource-bound classification was needed.
+They used Python 3.12.15, Graphillion 2.1, and the same tagged-atom
+ordering, with serialized node telemetry enabled.
+
+| R choices | S choices | n | Constraint wall (s) | Peak RSS (KiB) | Exact T count |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Bijections | Bijections | 8 | 7.573 | 805,820 | 40,320 |
+| Total functions | Total functions | 8 | 2.613 | 401,388 | 16,777,216 |
+| Bijections | Identity only | 8 | 0.044 | 32,044 | 40,320 |
+| Identity only | Bijections | 8 | 1.715 | 162,752 | 40,320 |
+| Total functions | Bijections | 8 | 0.266 | 74,016 | 16,777,216 |
+| Bijections | Total functions | 8 | 15.656 | 1,592,764 | 16,777,216 |
+
+The bijection/bijection node checkpoints at n=5,6,7,8 exactly
+reproduced the same empirical binomial formula from the local
+experiment, **every checkpoint**; total-function n=8 reproduced the
+linear sequence shown above, and the asymmetric controls preserved
+their distinct node shapes. Every case was verified extensionally.
+
+**Updated significance:** The original n=8 performance anomaly,
+the binomial retained-node profile, and the directionality of the
+one-factor substitutions are now independently replicated.
+The remaining uncertainty is *why Graphillion's exact coefficient is
+\(n2^{n-1}\)*, how many transient nodes peak during witness operations,
+and which alternative compilation schedule reduces this cost. Those
+questions, not an n=8 correctness repair, define the next experiment.
