@@ -468,3 +468,29 @@ For single-edge n=9, delayed graft's construction-plus-projection was **0.0358 s
 The feasible regime is strongly dependent on **the geometry of correlations induced by family constraints**, not on final result cardinality or input cardinality alone. Row elimination is a good current default based on R13, not a universal winner. A compiler eventually needs a structural cost model and perhaps alternative composition schedules/engines; do not hardcode a universal "row-local" assumption from total functions.
 
 CI will replicate this heterogeneous control matrix with exact output checks, 30-second resource classifications, and retained artifacts before promoting these observations beyond their local host.
+
+
+## R15 — structural controls replicated in CI; row-graft is not uniformly optimal
+
+PR #16 merged at `babe360017fb7db5917592b39dac5133286ebea8`. The [composition-families Actions run](https://github.com/cohereworks/searillion/actions/runs/41885045040) completed all ten matrix jobs under their correctness-or-resource-bound contract, uploaded ten named JSONL artifacts, and all seven triggered workflows passed (including Python 3.11/3.12 × Graphillion 1.10/1.11.post1/2.1 compatibility). A durable derived summary with exact timings, row checkpoints and classifications is retained in `experiments/results/r15-composition-families.jsonl`. Original per-row measurements remain in the workflow artifacts; the summary is not a substitute for their full traces.
+
+Same hosted runner class, Python 3.12.15, Graphillion 2.1; construction times exclude factor builds and final projection:
+
+| family | n | algorithm | construction (s) | peak RSS (KiB) | result |
+| --- | ---: | --- | ---: | ---: | --- |
+| bijections | 5 | row-graft | 0.0268 | 27,892 | 120, exact |
+| bijections | 5 | delayed graft | 0.0675 | 37,176 | 120, exact |
+| bijections | 8 | row-graft | 7.5533 | 803,812 | 40,320, exact |
+| bijections | 9 | row-graft | >30 | 1,558,984 at row 4/9 | timeout |
+| single-edge | 9 | row-graft | 0.0552 | 28,124 | 82, exact |
+| single-edge | 9 | delayed graft | 0.0407 | 28,252 | 82, exact |
+| single-edge | 12 | row-graft | 0.1324 | 37,536 | 145, exact |
+| unrestricted | 4 | row-graft | 1.0193 | 213,428 | 65,536, exact |
+| unrestricted | 5 | row-graft | >30 | 121,988 at row 1/5 | timeout |
+| unrestricted | 4 | delayed graft | >30 | 23,852 before timeout, no row telemetry | timeout |
+
+For the completed cases, final GraphSet equality against independent family constructors passed; 30-second timeouts **did not** reach a final exactness oracle. The single-edge n=9 counterexample replicated: including projection, delayed graft took **0.0498 s** versus row-graft **0.0593 s**, about 19% less elapsed time on separate comparable CI runners. The absolute gap is small; repeat/paired measurements are required before making a robust optimization choice for this class.
+
+R14's local qualitative findings survive CI replication. Even when final target cardinality is drastically smaller, intermediate relation dependencies can be more expensive: bijections at n=8 cost ~7.55 s to construct 40,320 outputs while total functions at n=8 cost ~2.89 s for 16,777,216 outputs in R13's matrix. Unrestricted inputs have a much earlier n=4→5 cliff than total functions. This reinforces the project's central empirical map and argues against a compiler that uses only source/target family cardinalities to choose algorithms.
+
+Next discriminators: measure genuinely partial functions and correlated/non-factorized input families; add audited DD-node telemetry across intermediate phases; and test whether semantically justified fast-path rewrites can avoid known closure operations without silently assuming family provenance. Leave the generic default at row-graft for now, but keep algorithm selection an open empirical question.
