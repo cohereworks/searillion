@@ -494,3 +494,45 @@ For the completed cases, final GraphSet equality against independent family cons
 R14's local qualitative findings survive CI replication. Even when final target cardinality is drastically smaller, intermediate relation dependencies can be more expensive: bijections at n=8 cost ~7.55 s to construct 40,320 outputs while total functions at n=8 cost ~2.89 s for 16,777,216 outputs in R13's matrix. Unrestricted inputs have a much earlier n=4→5 cliff than total functions. This reinforces the project's central empirical map and argues against a compiler that uses only source/target family cardinalities to choose algorithms.
 
 Next discriminators: measure genuinely partial functions and correlated/non-factorized input families; add audited DD-node telemetry across intermediate phases; and test whether semantically justified fast-path rewrites can avoid known closure operations without silently assuming family provenance. Leave the generic default at row-graft for now, but keep algorithm selection an open empirical question.
+
+
+## R16 — n=8 bijection anomaly gains a row-state explanation (exploratory)
+
+The R15 observation (40,320 bijection outputs costing more than 16.8
+million total-function outputs) is not explained by cardinality. An
+instrumented local experiment measured reachable serialized nonterminal
+nodes after every R-row elimination for n=5–8. Bijection node counts
+form a symmetric binomial curve, fitting the empirical expression
+`n * 2^(n-1) * (binomial(n,k) + 1)` for all observed n and completed
+row counts k. For n=8, the retained-node peak is **72,704 at row 4**.
+Total-function n=8 retained-node counts instead rise linearly from
+8,006 at row 1 to 15,118 at row 8.
+
+Controlled substitutions at n=8 with opt-in serialization showed
+10.166 s for bijections/bijections, 0.080 s for bijections/fixed identity,
+0.452 s for total functions/bijections, 2.113 s for fixed identity/
+bijections, and 25.437 s for bijections/total functions. All completed
+and passed independent exact target-family equality. These are local,
+single-process, **instrumentation-affected** times, not same-runner
+untracked-runtime regressions.
+
+The observations are consistent with the elimination state tracking
+which middle-carrier values the injective R rows have consumed, coupled
+through an unknown shared S relation. They do not prove this is the
+unique cause or account for peak transient allocations; serialized
+checkpoint nodes are not peak operation nodes. The independent CI
+replication of the **original anomaly** is in R15. A new CI diagnostic
+matrix will test the more specific state-growth hypothesis.
+
+For a third-party-readable purpose, falsifiers, controls, measurement
+table, significance, and complete reproduction procedure, see
+**[L001 — bijection composition](labbook/L001-bijection-composition.md)**.
+This inaugurates the [lab-book protocol](labbook/PROTOCOL.md):
+subsequent material experiments need a falsifiable method and
+interpretive significance, not merely another row of timings.
+
+An external audit also flagged the stale-universe bug (historical R5,
+guarded by current tests), the R1 ordering artifact (corrected R2), and
+an unverified missing Asana “M1” code artifact. Those have separate
+dispositions in [the audit reconciliation](labbook/AUDIT-2026-11-04.md);
+M1 is not credited as implemented without recoverable provenance.
