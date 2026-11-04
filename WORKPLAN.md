@@ -1,35 +1,44 @@
 # Work Plan
 
-This file is the canonical execution plan for Searillion. It is expected to evolve as evidence changes the research direction.
+This file is the canonical execution plan for Searillion. It is expected to evolve as evidence changes the research direction. Checkmarks describe implemented/tested capability, **not** universal scalability or final SEAR-semantic certification. See `RESEARCH.md` for measured boundaries.
+
+## Current priority (after R11)
+
+1. [x] Reconcile completed Phase 0/1 work and close superseded PR #4 without merging the pre-workspace prototype.
+2. [x] Test source-row grafting with *incremental* elimination of completed R rows; preserve correlations through shared S. Compare against exact extensional oracles.
+3. [ ] Complete same-runner, bounded n=4–10 benchmarks of graft vs row-elimination; retain row checkpoints and resource-limit outcomes in CI artifacts.
+4. [ ] Measure intermediate DD node counts using a defensible backend-specific method, report instrumentation overhead, and identify the next growth knee.
+5. [ ] Compare total functions against bijections, sparse/partial, correlated, and adversarial relation families before generalizing the improvement.
+6. [ ] Only if fused elimination still fails badly, specify the missing backend primitive and assess lower-level DD engines.
 
 ## Phase 0 — substrate and measurement
 
-- [ ] Record supported Python and Graphillion versions.
-- [ ] Add CI matrix covering current Graphillion plus selected historical baselines.
-- [ ] Establish deterministic experiment runner and machine-readable result schema.
-- [ ] Capture wall time, CPU time, peak RSS, ZDD size/node count where available, variable order, package versions, seed, and failure classification.
-- [ ] Add explicit brute-force/combinatorial baselines.
-- [ ] Establish artifact retention for benchmark results.
+- [x] Record supported Python and Graphillion versions (Phase 0 CI matrix).
+- [x] Add CI matrix covering current Graphillion plus selected historical baselines.
+- [x] Establish deterministic experiment scripts and machine-readable JSONL results (central orchestration remains future work).
+- [ ] Capture wall time, CPU time, peak RSS, ZDD size/node count where available, variable order, package versions, seed, and failure classification. Timings/RSS/version/order/classification work; generalized DD-node measurement is still incomplete.
+- [x] Add explicit brute-force/combinatorial baselines and correctness oracles (for implemented operations).
+- [x] Establish artifact retention for benchmark results (Actions uploads; bounded timeouts are classified).
 
 ## Phase 1 — finite SEAR kernel
 
-- [ ] Define canonical finite carriers and stable atom indexing.
-- [ ] Represent sets and families of sets.
-- [ ] Represent binary relations as subsets of Cartesian-product universes.
-- [ ] Implement family union/intersection/difference.
-- [ ] Implement projection / existential elimination.
-- [ ] Implement relational composition.
-- [ ] Implement exact counting without member enumeration where supported.
-- [ ] Validate every operation against explicit ground truth on small universes.
+- [x] Define finite carriers and stable tagged atom indexing within a compiled workspace.
+- [x] Represent finite relation subsets and families of them (not yet every SEAR set construction).
+- [x] Represent binary relations as subsets of Cartesian-product universes.
+- [x] Implement family union/intersection/difference.
+- [x] Implement projection / existential elimination.
+- [x] Implement exact relational composition (several constructors, bounded frontier).
+- [x] Implement exact counting without member enumeration where supported.
+- [x] Validate implemented operations against explicit ground truth on small universes.
 
 ## Phase 2 — compression frontier
 
-- [ ] Full power-set baseline.
-- [ ] Cardinality-constrained families.
+- [x] Full power-set baseline.
+- [x] Cardinality-constrained families.
 - [ ] Implication/exclusion constrained families.
-- [ ] Structured relation families.
+- [x] Structured relation families (total functions and bijections).
 - [ ] Equivalence relations / partitions.
-- [ ] Measure variable-order sensitivity.
+- [x] Measure variable-order sensitivity (R2/R10; not exhaustive).
 - [ ] Construct adversarial families intended to destroy sharing.
 - [ ] Identify the first practical failure knee for each operation, not merely construction.
 

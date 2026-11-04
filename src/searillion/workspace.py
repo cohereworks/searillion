@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Hashable, Iterable
+from typing import Callable, Hashable, Iterable
 
 from graphillion import GraphSet
 
@@ -10,6 +10,11 @@ from searillion.relation import (
     _claim_backend_universe,
     _require_backend_generation,
 )
+
+
+def _existentially_eliminate_atom(graphset: GraphSet, edge) -> GraphSet:
+    """Forget an atom while preserving all correlations among surviving atoms."""
+    return graphset.excluding(edge) | graphset.quotient(GraphSet([[edge]]))
 
 
 class RelationWorkspace:
@@ -244,6 +249,46 @@ class RelationWorkspace:
 
         return JointFamily(self, (r, s, target), graphset)
 
+    def _composition_joint_graft_rows(
+        self,
+        r_family: RelationFamily,
+        s_family: RelationFamily,
+        target: "RelationSignature",
+        *,
+        on_row: Callable[[int, GraphSet], None] | None = None,
+    ) -> "JointFamily":
+        """Graft each target row, then immediately eliminate its R row.
+
+        Future target rows never inspect R(a, *) once T(a, *) is complete.
+        This remains exact even when R has cross-row constraints: eliminating
+        a row projects the *whole* correlated family onto its surviving atoms.
+        S is shared across rows and must remain until final projection.
+        """
+        r, s = self._validate_composition_inputs(r_family, s_family, target)
+        graphset = self.product(r_family, s_family)._graphset
+
+        for row_index, a in enumerate(r.left.elements, start=1):
+            for c_value in s.right.elements:
+                t_edge = target._encode_pair((a, c_value))
+                witness = GraphSet([])
+                for b_value in r.right.elements:
+                    witness |= (
+                        graphset
+                        .including(r._encode_pair((a, b_value)))
+                        .including(s._encode_pair((b_value, c_value)))
+                    )
+                graphset = (graphset - witness) | witness.join(GraphSet([[t_edge]]))
+
+            for b_value in r.right.elements:
+                graphset = _existentially_eliminate_atom(
+                    graphset, r._encode_pair((a, b_value))
+                )
+
+            if on_row is not None:
+                on_row(row_index, graphset)
+
+        return JointFamily(self, (s, target), graphset)
+
     def compose(
         self,
         r_family: RelationFamily,
@@ -313,9 +358,7 @@ class JointFamily:
             if sig is signature:
                 continue
             for edge in sig._edges:
-                absent = graphset.excluding(edge)
-                positive_cofactor = graphset.quotient(GraphSet([[edge]]))
-                graphset = absent | positive_cofactor
+                graphset = _existentially_eliminate_atom(graphset, edge)
 
         return RelationFamily(signature, graphset)
 

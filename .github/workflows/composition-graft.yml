@@ -25,6 +25,13 @@ jobs:
           - { algorithm: graft, n: 6 }
           - { algorithm: graft, n: 7 }
           - { algorithm: graft, n: 8 }
+          - { algorithm: row-graft, n: 4 }
+          - { algorithm: row-graft, n: 5 }
+          - { algorithm: row-graft, n: 6 }
+          - { algorithm: row-graft, n: 7 }
+          - { algorithm: row-graft, n: 8 }
+          - { algorithm: row-graft, n: 9 }
+          - { algorithm: row-graft, n: 10 }
 
     steps:
       - uses: actions/checkout@v4
@@ -48,6 +55,7 @@ jobs:
           timeout 30s python experiments/composition_graft.py \
             --algorithm ${{ matrix.algorithm }} \
             --n ${{ matrix.n }} \
+            ${{ (matrix.algorithm == 'row-graft' && matrix.n == 4) && '--zdd-nodes' || '' }} \
             --output artifacts/composition-${{ matrix.algorithm }}-${{ matrix.n }}.jsonl
           code=$?
           set -e
