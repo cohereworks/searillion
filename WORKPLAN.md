@@ -6,10 +6,11 @@ This file is the canonical execution plan for Searillion. It is expected to evol
 
 1. [x] Reconcile completed Phase 0/1 work and close superseded PR #4 without merging the pre-workspace prototype.
 2. [x] Test source-row grafting with *incremental* elimination of completed R rows; preserve correlations through shared S. Compare against exact extensional oracles.
-3. [ ] Complete same-runner, bounded n=4–10 benchmarks of graft vs row-elimination; retain row checkpoints and resource-limit outcomes in CI artifacts.
-4. [ ] Measure intermediate DD node counts using a defensible backend-specific method, report instrumentation overhead, and identify the next growth knee.
-5. [ ] Compare total functions against bijections, sparse/partial, correlated, and adversarial relation families before generalizing the improvement.
-6. [ ] Only if fused elimination still fails badly, specify the missing backend primitive and assess lower-level DD engines.
+3. [x] Complete same-runner, bounded n=4–10 benchmarks of graft vs row-elimination; retain row checkpoints and resource-limit outcomes in CI artifacts (R13).
+4. [x] Promote row-wise elimination as the default public composer after exactness and CI replication (R13); retain both legacy constructors as research controls.
+5. [ ] Measure intermediate DD node counts using a defensible backend-specific method, report instrumentation overhead, and identify the next growth knee.
+6. [ ] Compare total functions against bijections, sparse/partial, correlated, and adversarial relation families before generalizing the improvement.
+7. [ ] Only if fused elimination still fails badly, specify the missing backend primitive and assess lower-level DD engines.
 
 ## Phase 0 — substrate and measurement
 

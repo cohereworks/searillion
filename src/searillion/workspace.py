@@ -302,7 +302,9 @@ class RelationWorkspace:
         ambient-set sensitive, so equal-looking but distinct carriers are not
         silently identified.
         """
-        return self._composition_joint_graft(r_family, s_family, target).project_to(target)
+        # Project completed source rows immediately; keep S shared until the
+        # end so arbitrary input-family correlations remain exact.
+        return self._composition_joint_graft_rows(r_family, s_family, target).project_to(target)
 
 
 class JointFamily:

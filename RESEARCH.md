@@ -402,3 +402,32 @@ An optional diagnostic counts nonterminal serialization lines from Graphillion 2
 R9–R11 remain valid observations about *those constructors*, but the claim that the n=5→n=6 cliff is inherent to witness-dependent semantic entanglement is too strong. A substantial part of that cliff was **delayed existential elimination**. The exact same semantic operation can finish n=9 with early row elimination, while retaining shared S correlations.
 
 The new local practical knee is between n=9 and n=10 under the 30-second bound; this is still a steeply growing intermediate-diagram problem, not polynomial scaling. Next: reproduce the comparison on the same GitHub Actions runner, then test adversarial correlated, sparse, bijection, and partial-function families; identify whether the remaining blow-up is due to surviving S/T coupling or a more favorable elimination order is possible.
+
+
+## R13 — GitHub Actions confirms R12; row elimination becomes default
+
+PR #14 merged at `9bfdcd4eedef6758925d36ac0db639d995b7b6b6`. The [composition-graft CI run](https://github.com/cohereworks/searillion/actions/runs/41882644698) executed thirteen bounded jobs on Ubuntu hosted runners, Python 3.12.15, Graphillion 2.1. All thirteen jobs **passed their workflow contract**, with expected 30-second resource-bound cases classified rather than mistaken for successful completion. The other nine triggered workflows also passed; the full test suite was green. The composition run retained thirteen named JSONL artifacts, including incremental row checkpoints and timeout classifications.
+
+Exact total-function composition on the same runner class:
+
+| n | constructor | constraints (s) | process peak RSS (KiB) | result |
+| ---: | --- | ---: | ---: | --- |
+| 5 | graft (R11) | 1.1896 | 212,368 | exact T-function family |
+| 5 | row-graft (R12) | 0.0222 | 27,668 | exact T-function family |
+| 6 | row-graft | 0.1197 | 47,600 | 46,656, exact T-function family |
+| 7 | row-graft | 0.6648 | 118,224 | 823,543, exact T-function family |
+| 8 | row-graft | 2.8897 | 399,120 | 16,777,216, exact T-function family |
+| 9 | row-graft | 12.4422 | 1,496,440 | 387,420,489, exact T-function family |
+| 10 | row-graft | incomplete >30 | 2,987,240 at row 6/10 | resource-bound timeout |
+
+Each completed row-graft job performed exact GraphSet equality against an independently compiled target total-function family; n=5 legacy graft passed the same independent oracle. The n=6–8 legacy graft and n=6 filter jobs completed their *bounded workflow* successfully through timeout classification, not by computing a target result. Their historical performance cliff remains valid.
+
+At n=5, early elimination reduces constraint-construction time by approximately **54×** and high-water RSS by **7.7×** on comparable GitHub Actions runners. It also shifts projection of R from the final projection phase into construction, so a fairer total composition comparison includes both phases: 1.4807 s for delayed graft vs 0.0237 s for row-graft, approximately **62×**. These ratios are workload/runner-specific, not asymptotic guarantees.
+
+The n=10 benchmark timed out after row 6, retaining the row-6 RSS observation of ≈2.85 GiB (no final relation count). The frontier is thus **n=9 completed, n=10 resource-bound** under the exact 30-second rule and current encoding. R9–R11's n=5→6 cliff was a property of their delayed-elimination construction, not a necessary cost of exact composition.
+
+### Decision and remaining uncertainty
+
+Row-graft is now the default `RelationWorkspace.compose()` constructor; filter and delayed graft remain available as research controls. Tests include S/T pair-level oracles to prevent an incorrect row-independent shortcut. This is an algorithm-selection decision for the current implementation, **not** proof that row-graft dominates for all input-family structures.
+
+Next tests must vary input family structure (bijections, sparse relations, partial functions, cross-row correlations), variable order and elimination schedule, and distinguish true ZDD node growth from process RSS/allocator effects. The serialization-line node diagnostic remains preliminary and does not yet establish a backend-independent metric.

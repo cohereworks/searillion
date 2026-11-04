@@ -545,3 +545,13 @@ def test_row_elimination_total_functions_equal_independent_target_constructor():
 
     result = ws._composition_joint_graft_rows(r.functions(), s.functions(), t)
     assert result.project_to(t)._graphset == t.functions()._graphset
+
+
+def test_public_compose_selects_row_elimination_not_legacy_graft(monkeypatch):
+    ws, r, s, t = make_composition_workspace()
+
+    def legacy_called(*_args, **_kwargs):
+        raise AssertionError("legacy delayed-elimination composer was selected")
+
+    monkeypatch.setattr(ws, "_composition_joint_graft", legacy_called)
+    assert ws.compose(r.functions(), s.functions(), t)._graphset == t.functions()._graphset
