@@ -22,8 +22,8 @@ jobs:
         n: [10, 11]
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -51,7 +51,7 @@ jobs:
             exit 0
           fi
           exit "$code"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: order-${{ matrix.n }}-${{ matrix.traversal }}-${{ matrix.pair_order }}
@@ -67,8 +67,8 @@ jobs:
         n: [12, 16, 32, 64]
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -94,7 +94,7 @@ jobs:
             exit 0
           fi
           exit "$code"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: scale-${{ matrix.n }}-${{ matrix.traversal }}-row-major

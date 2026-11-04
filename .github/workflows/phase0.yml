@@ -21,8 +21,8 @@ jobs:
         graphillion: ["2.1", "1.11.post1", "1.10"]
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
           cache: pip
@@ -47,7 +47,7 @@ jobs:
           python -VV > artifacts/python.txt
           python -m pip freeze > artifacts/pip-freeze.txt
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: phase0-py${{ matrix.python }}-graphillion-${{ matrix.graphillion }}
