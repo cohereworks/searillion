@@ -431,3 +431,40 @@ The n=10 benchmark timed out after row 6, retaining the row-6 RSS observation of
 Row-graft is now the default `RelationWorkspace.compose()` constructor; filter and delayed graft remain available as research controls. Tests include S/T pair-level oracles to prevent an incorrect row-independent shortcut. This is an algorithm-selection decision for the current implementation, **not** proof that row-graft dominates for all input-family structures.
 
 Next tests must vary input family structure (bijections, sparse relations, partial functions, cross-row correlations), variable order and elimination schedule, and distinguish true ZDD node growth from process RSS/allocator effects. The serialization-line node diagnostic remains preliminary and does not yet establish a backend-independent metric.
+
+
+## R14 — input-family structure radically changes composition cost (local controls, awaiting CI)
+
+### Hypothesis and controls
+
+The R12/13 improvement may depend on the factorized row structure of total functions. Use the same shared workspace, atom order, Graphillion 2.1 backend and exact composition constructors, varying **only the source-family constraints**:
+
+- `bijections`: R,S each range over all permutations; exact target family is all permutations, size n!;
+- `single-edge`: R,S each contain exactly one atom; for n≥2, the target family comprises the empty relation and each possible singleton target, size n²+1;
+- `unrestricted`: R,S each range over the full powerset; for n=n=n with an available identity S, every T is attainable, giving 2^(n²) targets.
+
+Independent GraphSet equality oracles verify the final family, not just its cardinality. Small explicit tests for each case were added before benchmark extension. The existing `composition_graft.py` runner now takes an optional `--family` flag, defaulting to the historical total-function workload; it retains factor/construction/projection separation and emits resource-bound row checkpoints.
+
+### Preliminary local measurements (2026-11-04)
+
+Graphillion 2.1, Python 3.12.14, Linux 6.18.57 x86-64, `as-is`, signature-major/row-major, no seed; 30-second bounds. Timings below are constraint construction only; peak RSS is process-wide. Completed runs pass the independent exact target-family oracle.
+
+| family | n | algorithm | constraint (s) | peak RSS (KiB) | output family/result |
+| --- | ---: | --- | ---: | ---: | --- |
+| bijections | 5 | row-graft | 0.0227 | 22,496 | 120, exact |
+| bijections | 8 | row-graft | 9.340 | 800,852 | 40,320, exact |
+| bijections | 9 | row-graft | >30 | 1,555,272 at row 4/9 | timeout |
+| single-edge | 9 | row-graft | 0.0444 | 22,716 | 82, exact |
+| single-edge | 9 | delayed graft | 0.0298 | 22,724 | 82, exact |
+| single-edge | 12 | row-graft | 0.1092 | 32,440 | 145, exact |
+| unrestricted | 4 | row-graft | 1.607 | 207,544 | 65,536, exact |
+| unrestricted | 5 | row-graft | >30 | 116,920 at row 1/5 | timeout |
+| unrestricted | 4 | delayed graft | >30 | unavailable after bound | timeout |
+
+For single-edge n=9, delayed graft's construction-plus-projection was **0.0358 s** versus row-graft's **0.0470 s**: an explicit counterexample to blanket row-graft superiority, though a small absolute difference susceptible to runner noise. With bijections at n=8, only 40,320 outputs cost ~9.3 s, versus 16.8 million total-function outputs costing ~3.5 s on the same local platform. The unrestricted case exposes a severe n=4→5 knee despite trivial input-family construction.
+
+### Interpretation
+
+The feasible regime is strongly dependent on **the geometry of correlations induced by family constraints**, not on final result cardinality or input cardinality alone. Row elimination is a good current default based on R13, not a universal winner. A compiler eventually needs a structural cost model and perhaps alternative composition schedules/engines; do not hardcode a universal "row-local" assumption from total functions.
+
+CI will replicate this heterogeneous control matrix with exact output checks, 30-second resource classifications, and retained artifacts before promoting these observations beyond their local host.
