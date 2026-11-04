@@ -585,3 +585,41 @@ def test_compose_single_edge_relations_is_empty_or_single_edge(n):
 def test_compose_unrestricted_small_families_is_unrestricted():
     ws, r, s, t = make_composition_workspace()
     assert ws.compose(r.all(), s.all(), t)._graphset == t.all()._graphset
+
+
+@pytest.mark.parametrize("n", [2, 3])
+@pytest.mark.parametrize(
+    "r_kind,s_kind,expected_kind",
+    [
+        ("bijections", "total-functions", "total-functions"),
+        ("total-functions", "bijections", "total-functions"),
+        ("bijections", "identity", "bijections"),
+        ("identity", "bijections", "bijections"),
+    ],
+)
+def test_mixed_function_bijection_composition_matches_explicit_oracle(
+    n, r_kind, s_kind, expected_kind
+):
+    carriers = [Carrier(name, range(n)) for name in ("A", "B", "C")]
+    ws = RelationWorkspace()
+    r = ws.relation("R", carriers[0], carriers[1])
+    s = ws.relation("S", carriers[1], carriers[2])
+    t = ws.relation("T", carriers[0], carriers[2])
+    ws.compile()
+
+    def family(sig, kind):
+        if kind == "identity":
+            return sig.explicit([[(i, i) for i in range(n)]])
+        return sig.functions() if kind == "total-functions" else sig.bijections()
+
+    rf, sf = family(r, r_kind), family(s, s_kind)
+    expected = {
+        explicit_compose(rv, sv)
+        for rv in rf.relations()
+        for sv in sf.relations()
+    }
+    actual = ws.compose(rf, sf, t)
+    expected_family = family(t, expected_kind)
+
+    assert set(actual.relations()) == expected
+    assert actual._graphset == expected_family._graphset

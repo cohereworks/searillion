@@ -85,3 +85,17 @@ def test_stale_universe_cannot_construct_new_family():
 
     with pytest.raises(RuntimeError, match="inactive"):
         u1.all()
+
+
+def test_second_larger_universe_cannot_make_2x2_report_3x3_cardinality():
+    old = make_2x2()
+    old_family = old.all()
+    assert old_family.count() == 16
+
+    new = RelationUniverse(Carrier("X", range(3)), Carrier("Y", range(3)))
+    assert new.all().count() == 512
+
+    # Previously a 2x2 object could be decoded against a replacement backend
+    # universe. Explicit invalidation prevents a plausible-looking wrong count.
+    with pytest.raises(RuntimeError, match="inactive"):
+        old_family.count()

@@ -2,8 +2,12 @@
 
 This file is the canonical execution plan for Searillion. It is expected to evolve as evidence changes the research direction. Checkmarks describe implemented/tested capability, **not** universal scalability or final SEAR-semantic certification. See `RESEARCH.md` for measured boundaries.
 
-## Current priority (after R11)
+## Current priority (after R15; L001 diagnostics underway)
 
+0. [x] Establish a reader-facing [lab-book protocol](labbook/PROTOCOL.md)
+   and [experiment index](LABBOOK.md), separating purpose, falsifiable
+   hypothesis, method, observed results, interpretation, and provenance.
+   L001 is the first full record; older R-series evidence remains intact.
 1. [x] Reconcile completed Phase 0/1 work and close superseded PR #4 without merging the pre-workspace prototype.
 2. [x] Test source-row grafting with *incremental* elimination of completed R rows; preserve correlations through shared S. Compare against exact extensional oracles.
 3. [x] Complete same-runner, bounded n=4–10 benchmarks of graft vs row-elimination; retain row checkpoints and resource-limit outcomes in CI artifacts (R13).
@@ -11,6 +15,12 @@ This file is the canonical execution plan for Searillion. It is expected to evol
 5. [ ] Measure intermediate DD node counts using a defensible backend-specific method, report instrumentation overhead, and identify the next growth knee.
 6. [ ] Compare total functions against bijections, sparse/partial, correlated, and adversarial relation families before generalizing the improvement. R14/R15 complete CI-backed bijection, single-edge, and unrestricted controls; partial/correlated/adversarial performance cases remain.
 7. [ ] Only if fused elimination still fails badly, specify the missing backend primitive and assess lower-level DD engines.
+8. [ ] Reconcile the Asana “M1 code not in repo” provenance gap once
+   the original task and any claimed code artifact are recoverable;
+   do not mark a phantom implementation complete.
+9. [ ] Replicate L001's n=8 asymmetric factor controls and binomial
+   row-boundary node trace in Node-24-backed GitHub Actions; follow with
+   measured peak intermediate nodes and compiler-plan alternatives.
 
 ## Phase 0 — substrate and measurement
 
