@@ -361,3 +361,44 @@ The unconstrained target powerset was a substantial but secondary source of cost
 Graft becomes the default composition constructor because it is exact, conceptually direct, and materially cheaper. The original filter constructor is retained as an experimental baseline.
 
 The remaining bottleneck is the symbolic enforcement of the witness-dependent target relation itself, not target-choice multiplicity, generic projection, or independent family product.
+
+
+## R12 — early source-row elimination moves composition's practical frontier to n=9–10 (local, awaiting CI replication)
+
+### Hypothesis and exactness argument
+
+The R9–R11 constructors retain *all* R/S assignment atoms while every target witness constraint is added. This may force the diagram to represent correlations that need not survive until the final target is complete.
+
+For each source row `a`, every constraint for `T(a,*)` depends on `R(a,*)` and the **shared** S relation, but no subsequent target row reads `R(a,*)`. Therefore, after grafting an entire target row, we can existentially eliminate its R atoms before moving to the next row. Existential elimination commutes with future constraints that do not mention the eliminated atoms. This holds even when the input R family couples different rows: elimination retains those correlations as restrictions on the surviving R/S/T atoms. Eliminating S early or treating target rows as independent would *not* be sound in general.
+
+The new `_composition_joint_graft_rows()` returns a joint family over S,T, after having already projected out R one row at a time. Explicit tests cover cross-row R correlation with shared S, rectangular families, empty families, and an independent total-function target oracle. The original filter and graft constructors remain as controls.
+
+### Local measurements (2026-11-04)
+
+Python 3.12.14, Graphillion 2.1, Linux 6.18.57 x86-64, tagged Graphillion relation edges, `as-is` traversal, signature-major/row-major atom order. Inputs are deterministic *complete* total-function families (no seed). The rows below measure only composition-constraint construction, **excluding factor builds and final S projection**. Peak RSS is the process high-water mark in KiB converted approximately to MiB. A 30-second bound is used throughout. The new runner instrumentation emits a per-row measurement immediately after that row's R atoms are eliminated.
+
+| n | row-graft constraints | peak RSS | exact final target count | result |
+| ---: | ---: | ---: | ---: | --- |
+| 4 | 0.030 s | 19.5 MiB | 256 | completed |
+| 5 | 0.027–0.048 s | 21.8–22.3 MiB | 3,125 | completed |
+| 6 | 0.111 s | 41.5 MiB | 46,656 | completed |
+| 7 | 0.872 s | 110.6 MiB | 823,543 | completed |
+| 8 | 3.840 s | 384.7 MiB | 16,777,216 | completed |
+| 9 | 16.507 s | 1,457.2 MiB | 387,420,489 | completed |
+| 10 | no completion in 30 s | 1,547.4 MiB at fifth completed row | not reached | resource-bound timeout after 5/10 rows; 6.5 GB virtual-memory cap |
+
+Same-host n=5 control, separate processes on the same Python/Graphillion environment:
+
+- original graft: constraint construction **1.720 s**, peak RSS ≈202.5 MiB; final projection ≈0.426 s;
+- row-graft: constraint construction **0.027 s**, peak RSS ≈21.7 MiB; final projection ≈0.0017 s;
+- exact counts match, and both final families compare equal to an independently compiled target total-function family by GraphSet equality.
+
+For the n=7 row-graft run, the same independent GraphSet equality oracle passed. The n=8 and n=9 local runs prior to adding that benchmark check have exact final counts but not independently verified full-family equality in those *individual* runs; small-family extensional tests and the n=7 independent symbolic oracle provide additional coverage. CI will execute the independent equality oracle on every completed case.
+
+An optional diagnostic counts nonterminal serialization lines from Graphillion 2.1's internal `setset.dumps()` format; n=4 row checkpoints recorded 134, 162, 190, and 218 nodes. This is **provisional node-count instrumentation**, not yet an audited public API or cost-neutral measurement. It is opt-in because serialization may add material time and memory.
+
+### Revised interpretation
+
+R9–R11 remain valid observations about *those constructors*, but the claim that the n=5→n=6 cliff is inherent to witness-dependent semantic entanglement is too strong. A substantial part of that cliff was **delayed existential elimination**. The exact same semantic operation can finish n=9 with early row elimination, while retaining shared S correlations.
+
+The new local practical knee is between n=9 and n=10 under the 30-second bound; this is still a steeply growing intermediate-diagram problem, not polynomial scaling. Next: reproduce the comparison on the same GitHub Actions runner, then test adversarial correlated, sparse, bijection, and partial-function families; identify whether the remaining blow-up is due to surviving S/T coupling or a more favorable elimination order is possible.

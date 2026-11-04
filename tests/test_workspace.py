@@ -466,3 +466,82 @@ def test_graft_composition_handles_multiple_witnesses_and_no_witnesses():
     assert set(result.relations()) == {
         frozenset({("a", "c0")})
     }
+
+
+def test_row_elimination_preserves_shared_s_and_cross_row_r_correlations():
+    ws, r, s, t = make_composition_workspace()
+
+    # R's rows are correlated: they must choose the same middle element.
+    # S is shared by both target rows, so treating rows independently would
+    # create impossible S/T pairs even if the final target count happened
+    # to match.
+    r_values = {
+        frozenset({("a0", "b0"), ("a1", "b0")}),
+        frozenset({("a0", "b1"), ("a1", "b1")}),
+    }
+    s_values = {
+        frozenset({("b0", "c0"), ("b1", "c1")}),
+        frozenset({("b0", "c1"), ("b1", "c0")}),
+    }
+    expected = {
+        (s_value, explicit_compose(r_value, s_value))
+        for r_value in r_values
+        for s_value in s_values
+    }
+
+    joint = ws._composition_joint_graft_rows(
+        r.explicit(r_values), s.explicit(s_values), t
+    )
+    actual = {
+        (assignment["S"], assignment["T"])
+        for assignment in joint.assignments()
+    }
+
+    assert joint.signatures == (s, t)
+    assert actual == expected
+    assert set(joint.project_to(t).relations()) == {t_value for _, t_value in expected}
+
+
+def test_row_elimination_matches_filter_on_rectangular_families():
+    a = Carrier("A", [0, 1])
+    b = Carrier("B", [0, 1, 2])
+    c = Carrier("C", [0, 1])
+    ws = RelationWorkspace()
+    r = ws.relation("R", a, b)
+    s = ws.relation("S", b, c)
+    t = ws.relation("T", a, c)
+    ws.compile()
+
+    r_values = [[], [(0, 0), (1, 1)], [(0, 1), (0, 2), (1, 0)]]
+    s_values = [[], [(0, 1), (1, 1)], [(1, 0), (2, 1)]]
+    expected = {
+        explicit_compose(frozenset(rv), frozenset(sv))
+        for rv in r_values
+        for sv in s_values
+    }
+    rf, sf = r.explicit(r_values), s.explicit(s_values)
+
+    row_result = ws._composition_joint_graft_rows(rf, sf, t).project_to(t)
+    filter_result = ws._composition_joint(rf, sf, t).project_to(t)
+    assert set(row_result.relations()) == expected
+    assert set(filter_result.relations()) == expected
+
+
+def test_row_elimination_empty_source_family_yields_empty_target_family():
+    ws, r, s, t = make_composition_workspace()
+    result = ws._composition_joint_graft_rows(r.empty_family(), s.all(), t)
+    assert result.project_to(t).count() == 0
+
+
+def test_row_elimination_total_functions_equal_independent_target_constructor():
+    carrier_a = Carrier("A", range(3))
+    carrier_b = Carrier("B", range(3))
+    carrier_c = Carrier("C", range(3))
+    ws = RelationWorkspace()
+    r = ws.relation("R", carrier_a, carrier_b)
+    s = ws.relation("S", carrier_b, carrier_c)
+    t = ws.relation("T", carrier_a, carrier_c)
+    ws.compile()
+
+    result = ws._composition_joint_graft_rows(r.functions(), s.functions(), t)
+    assert result.project_to(t)._graphset == t.functions()._graphset
