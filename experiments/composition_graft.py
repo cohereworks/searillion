@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from importlib.metadata import version
+from math import factorial
 import platform
 from pathlib import Path
 import resource
@@ -25,6 +26,8 @@ def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--n", type=int, required=True)
     p.add_argument("--algorithm", choices=("filter", "graft", "row-graft"), required=True)
+    p.add_argument("--family", choices=("total-functions", "bijections", "single-edge", "unrestricted"),
+                   default="total-functions")
     p.add_argument("--zdd-nodes", action="store_true",
                    help="serialize intermediate ZDDs to count nodes (extra time/memory)")
     p.add_argument("--output", required=True)
@@ -40,17 +43,43 @@ def main() -> None:
     t = ws.relation("T", a, c)
     ws.compile()
 
+    expected_source = {
+        "total-functions": args.n ** args.n,
+        "bijections": factorial(args.n),
+        "single-edge": args.n ** 2,
+        "unrestricted": 1 << (args.n ** 2),
+    }[args.family]
+    expected_target_count = {
+        "total-functions": args.n ** args.n,
+        "bijections": factorial(args.n),
+        "single-edge": args.n ** 2 + (args.n > 1),
+        "unrestricted": 1 << (args.n ** 2),
+    }[args.family]
+
+    def construct_family(signature):
+        return {
+            "total-functions": signature.functions,
+            "bijections": signature.bijections,
+            "single-edge": lambda: signature.exactly(1),
+            "unrestricted": signature.all,
+        }[args.family]()
+
+    def target_oracle():
+        if args.family == "single-edge":
+            return t.exactly(1) | (t.explicit([[]]) if args.n > 1 else t.empty_family())
+        return construct_family(t)
+
     encoding = {
         "encoding": "tagged_relation_edge_atoms",
         "atom_order": "signature-major/row-major",
         "traversal": "as-is",
         "atom_count": ws.atom_count,
-        "input_family": "total_functions",
+        "input_family": args.family,
         "seed": None,  # Exhaustive deterministic family, no generator.
     }
 
     print(
-        f"START n={args.n} algorithm={args.algorithm} atoms={ws.atom_count}",
+        f"START n={args.n} algorithm={args.algorithm} family={args.family} atoms={ws.atom_count}",
         flush=True,
     )
 
@@ -58,11 +87,12 @@ def main() -> None:
 
     for name, sig in (("R", r), ("S", s)):
         row = measure(
-            f"build_{name}_functions",
-            lambda sig=sig, name=name: boxes.setdefault(name, sig.functions()) is not None,
+            (f"build_{name}_functions" if args.family == "total-functions"
+             else f"build_{name}_family"),
+            lambda sig=sig, name=name: boxes.setdefault(name, construct_family(sig)) is not None,
             n=args.n,
             algorithm=args.algorithm,
-            expected=args.n ** args.n,
+            expected=expected_source,
             **encoding,
         )
         emit(args.output, row)
@@ -118,7 +148,7 @@ def main() -> None:
         ) is not None,
         n=args.n,
         algorithm=args.algorithm,
-        source_pairs=args.n ** (2 * args.n),
+        source_pairs=expected_source ** 2,
         **encoding,
     )
     emit(args.output, constrain)
@@ -139,18 +169,20 @@ def main() -> None:
         lambda: boxes["T"].count(),
         n=args.n,
         algorithm=args.algorithm,
-        expected=args.n ** args.n,
+        expected=expected_target_count,
         **encoding,
     )
-    assert count.result == args.n ** args.n
+    assert count.result == expected_target_count
     emit(args.output, count)
 
     oracle = measure(
-        "verify_against_independent_target_function_family",
-        lambda: boxes["T"]._graphset == t.functions()._graphset,
+        ("verify_against_independent_target_function_family"
+         if args.family == "total-functions" else
+         "verify_against_independent_target_family"),
+        lambda: boxes["T"]._graphset == target_oracle()._graphset,
         n=args.n,
         algorithm=args.algorithm,
-        oracle="GraphSet exact equality vs independently compiled T functions",
+        oracle="GraphSet exact equality vs independent target-family construction",
         **encoding,
     )
     assert oracle.result is True

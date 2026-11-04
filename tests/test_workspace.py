@@ -555,3 +555,33 @@ def test_public_compose_selects_row_elimination_not_legacy_graft(monkeypatch):
 
     monkeypatch.setattr(ws, "_composition_joint_graft", legacy_called)
     assert ws.compose(r.functions(), s.functions(), t)._graphset == t.functions()._graphset
+
+
+@pytest.mark.parametrize("n", [2, 3])
+def test_compose_bijection_families_equals_independent_bijections(n):
+    a, b, c = (Carrier(name, range(n)) for name in ("A", "B", "C"))
+    ws = RelationWorkspace()
+    r, s, t = (ws.relation(name, left, right) for name, left, right in (
+        ("R", a, b), ("S", b, c), ("T", a, c)
+    ))
+    ws.compile()
+
+    assert ws.compose(r.bijections(), s.bijections(), t)._graphset == t.bijections()._graphset
+
+
+@pytest.mark.parametrize("n", [2, 3])
+def test_compose_single_edge_relations_is_empty_or_single_edge(n):
+    a, b, c = (Carrier(name, range(n)) for name in ("A", "B", "C"))
+    ws = RelationWorkspace()
+    r, s, t = (ws.relation(name, left, right) for name, left, right in (
+        ("R", a, b), ("S", b, c), ("T", a, c)
+    ))
+    ws.compile()
+
+    expected = t.exactly(1) | t.explicit([[]])
+    assert ws.compose(r.exactly(1), s.exactly(1), t)._graphset == expected._graphset
+
+
+def test_compose_unrestricted_small_families_is_unrestricted():
+    ws, r, s, t = make_composition_workspace()
+    assert ws.compose(r.all(), s.all(), t)._graphset == t.all()._graphset

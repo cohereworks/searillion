@@ -9,7 +9,7 @@ This file is the canonical execution plan for Searillion. It is expected to evol
 3. [x] Complete same-runner, bounded n=4–10 benchmarks of graft vs row-elimination; retain row checkpoints and resource-limit outcomes in CI artifacts (R13).
 4. [x] Promote row-wise elimination as the default public composer after exactness and CI replication (R13); retain both legacy constructors as research controls.
 5. [ ] Measure intermediate DD node counts using a defensible backend-specific method, report instrumentation overhead, and identify the next growth knee.
-6. [ ] Compare total functions against bijections, sparse/partial, correlated, and adversarial relation families before generalizing the improvement.
+6. [ ] Compare total functions against bijections, sparse/partial, correlated, and adversarial relation families before generalizing the improvement. R14 adds bijection, single-edge, and unrestricted local controls; CI replication and partial/correlated performance cases remain.
 7. [ ] Only if fused elimination still fails badly, specify the missing backend primitive and assess lower-level DD engines.
 
 ## Phase 0 — substrate and measurement
