@@ -14,6 +14,19 @@ from searillion.relation import Carrier
 from searillion.workspace import RelationWorkspace
 
 
+FAMILY_INPUTS = {
+    "total-functions": ("total-functions", "total-functions", "total-functions"),
+    "bijections": ("bijections", "bijections", "bijections"),
+    "single-edge": ("single-edge", "single-edge", "single-edge"),
+    "unrestricted": ("unrestricted", "unrestricted", "unrestricted"),
+    # Controlled substitutions: change only one factor's constraint.
+    "bijection-function": ("bijections", "total-functions", "total-functions"),
+    "function-bijection": ("total-functions", "bijections", "total-functions"),
+    "bijection-identity": ("bijections", "identity", "bijections"),
+    "identity-bijection": ("identity", "bijections", "bijections"),
+}
+
+
 def emit(path: str, row) -> None:
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -26,7 +39,7 @@ def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--n", type=int, required=True)
     p.add_argument("--algorithm", choices=("filter", "graft", "row-graft"), required=True)
-    p.add_argument("--family", choices=("total-functions", "bijections", "single-edge", "unrestricted"),
+    p.add_argument("--family", choices=tuple(FAMILY_INPUTS),
                    default="total-functions")
     p.add_argument("--zdd-nodes", action="store_true",
                    help="serialize intermediate ZDDs to count nodes (extra time/memory)")
@@ -43,31 +56,39 @@ def main() -> None:
     t = ws.relation("T", a, c)
     ws.compile()
 
-    expected_source = {
-        "total-functions": args.n ** args.n,
-        "bijections": factorial(args.n),
-        "single-edge": args.n ** 2,
-        "unrestricted": 1 << (args.n ** 2),
-    }[args.family]
-    expected_target_count = {
-        "total-functions": args.n ** args.n,
-        "bijections": factorial(args.n),
-        "single-edge": args.n ** 2 + (args.n > 1),
-        "unrestricted": 1 << (args.n ** 2),
-    }[args.family]
+    r_kind, s_kind, t_kind = FAMILY_INPUTS[args.family]
 
-    def construct_family(signature):
+    def family_count(kind: str) -> int:
+        return {
+            "total-functions": args.n ** args.n,
+            "bijections": factorial(args.n),
+            "single-edge": args.n ** 2,
+            "unrestricted": 1 << (args.n ** 2),
+            "identity": 1,
+        }[kind]
+
+    expected_sources = {"R": family_count(r_kind), "S": family_count(s_kind)}
+    expected_target_count = (
+        args.n ** 2 + (args.n > 1)
+        if t_kind == "single-edge" else family_count(t_kind)
+    )
+
+    def construct_family(signature, kind: str):
+        if kind == "identity":
+            return signature.explicit(
+                [[(i, i) for i in range(args.n)]]
+            )
         return {
             "total-functions": signature.functions,
             "bijections": signature.bijections,
             "single-edge": lambda: signature.exactly(1),
             "unrestricted": signature.all,
-        }[args.family]()
+        }[kind]()
 
     def target_oracle():
-        if args.family == "single-edge":
+        if t_kind == "single-edge":
             return t.exactly(1) | (t.explicit([[]]) if args.n > 1 else t.empty_family())
-        return construct_family(t)
+        return construct_family(t, t_kind)
 
     encoding = {
         "encoding": "tagged_relation_edge_atoms",
@@ -75,6 +96,8 @@ def main() -> None:
         "traversal": "as-is",
         "atom_count": ws.atom_count,
         "input_family": args.family,
+        "r_family": r_kind,
+        "s_family": s_kind,
         "seed": None,  # Exhaustive deterministic family, no generator.
     }
 
@@ -85,14 +108,16 @@ def main() -> None:
 
     boxes = {}
 
-    for name, sig in (("R", r), ("S", s)):
+    for name, sig, kind in (("R", r, r_kind), ("S", s, s_kind)):
         row = measure(
-            (f"build_{name}_functions" if args.family == "total-functions"
+            (f"build_{name}_functions" if kind == "total-functions"
              else f"build_{name}_family"),
-            lambda sig=sig, name=name: boxes.setdefault(name, construct_family(sig)) is not None,
+            lambda sig=sig, name=name, kind=kind: boxes.setdefault(
+                name, construct_family(sig, kind)
+            ) is not None,
             n=args.n,
             algorithm=args.algorithm,
-            expected=expected_source,
+            expected=expected_sources[name],
             **encoding,
         )
         emit(args.output, row)
@@ -148,7 +173,7 @@ def main() -> None:
         ) is not None,
         n=args.n,
         algorithm=args.algorithm,
-        source_pairs=expected_source ** 2,
+        source_pairs=expected_sources["R"] * expected_sources["S"],
         **encoding,
     )
     emit(args.output, constrain)
@@ -177,7 +202,7 @@ def main() -> None:
 
     oracle = measure(
         ("verify_against_independent_target_function_family"
-         if args.family == "total-functions" else
+         if t_kind == "total-functions" else
          "verify_against_independent_target_family"),
         lambda: boxes["T"]._graphset == target_oracle()._graphset,
         n=args.n,
